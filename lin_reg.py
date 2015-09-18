@@ -8,7 +8,7 @@ from machine_learning import *
 from toy_data import *
 
 #generate data
-N = 30
+N = 1000
 p = 1
 m = 1
 X,Y,B_ans = linear_n_Xp_Ym(N,p,m)
@@ -29,9 +29,9 @@ print 'mean squared errors on training data for each element of output vector, Y
 print mse
 
 #Cross Validation
-cvn = 5
+cvn = 10
 print 'performing cross validation CV('+str(cvn)+')'
-cvn_result = n_cross_validation(X,Y,linear_regression_train_test,cvn)
+cvn_result = n_cross_validation(X,Y,linear_regression_train_test,None,cvn)
 print 'cross validation errors for each element of output vector, Y:'
 print cvn_result
 
