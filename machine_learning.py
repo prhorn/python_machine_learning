@@ -1,4 +1,5 @@
 import numpy as np
+import sys
 
 def mean_squared_error(Y_predicted,Y_actual):
 #{
@@ -57,20 +58,21 @@ def linear_regression(X,Y,include_intercept):
    B = np.dot(metric_inv,np.dot(aX.T,Y))
 
    return B
-#} //end linear_regression
+#} 
 
-def linear_regression_train_test(X_train,Y_train,X_test,Y_test):
+def linear_regression_train_test(X_train,Y_train,X_test,Y_test,param_tuple):
 #{
    #fits a linear model for outputs (Y cols) with predictors in X (cols) 
    #plus an intercept based on training data and then computes
    #the mean squared error for the test set
+   #param_tuple currently not used
    B = linear_regression(X_train,Y_train,True)
    predicted_Y = np.dot(np.column_stack((X_test,np.ones(X_test.shape[0]))),B) #add ones col to X to get intercept contriubtion
    mse = mean_squared_error(predicted_Y,Y_test) 
    return mse
-#} //end linear_regression_error
+#} 
 
-def n_cross_validation(training_inputs,training_outputs,model_error_function,n):
+def n_cross_validation(training_inputs,training_outputs,model_error_function,param_tuple,n):
 #{
    #perform CV(n)
    #returns a vector of errors for each column of Y that is an average over n fits
@@ -143,7 +145,7 @@ def n_cross_validation(training_inputs,training_outputs,model_error_function,n):
       test_in_i = permuted_inputs[batch_before:batch_before+batch_sizes[i],:]
       test_out_i = permuted_outputs[batch_before:batch_before+batch_sizes[i],:]
       #fit the model to this data
-      mse_i = model_error_function(train_in_i,train_out_i,test_in_i,test_out_i)
+      mse_i = model_error_function(train_in_i,train_out_i,test_in_i,test_out_i,param_tuple)
       trial_results[i,:] = mse_i
 
    #we now have the errors for each of the n fits
@@ -152,5 +154,48 @@ def n_cross_validation(training_inputs,training_outputs,model_error_function,n):
    for i in range(training_outputs.shape[1]):
       avg_result[i] = np.sum(trial_results[:,i])/float(n)
    return avg_result
+#} 
 
-#} //end n_cross_validation
+
+def k_nearest_neighbors(X_train,Y_train,X_predict,k):
+#{
+   #returns our predictions for Y at the values X_predit based on the test data
+   if not (X_train.shape[0] == Y_train.shape[0]):
+      print 'number of observations in training data matrices did not agree in k_nearest_neighbors'
+      sys.exit(1)
+   if not (X_train.shape[1] == X_predict.shape[1]):
+      print 'number of predictors (columns of X) inconsistent between predict and train'
+      sys.exit(1)
+   if (not (type(k) is int)) or (k<1):
+      print 'k must be a positive integger in k_nearest_neighbors'
+      sys.exit(1)
+   if (k>X_train.shape[0]):
+      print 'you asked for more neighbors than you provided training points. Try again'
+      sys.exit(1)
+
+   #determin the distance between each X point (observation) in train and in test
+   sq_distances = np.zeros((X_train.shape[0],X_predict.shape[0])) #square distances will still give us the same ordering
+   for i in range(X_train.shape[0]):
+      for j in range(X_predict.shape[0]):
+         disp_ij = X_train[i,:] - X_predict[j,:]
+         sq_distances[i,j] = np.dot(disp_ij,disp_ij)
+   
+   Y_predict = np.zeros((X_predict.shape[0],Y_train.shape[1]))
+   for j in range(X_predict.shape[0]):
+      sort_indices = np.argsort(sq_distances[:,j]) #sorts increasing 
+      sorted_output = Y_train[sort_indices,:]
+      for c in range(Y_train.shape[1]):
+         Y_predict[j,c] = np.sum(sorted_output[:k,c])/float(k)
+   
+   return Y_predict
+#}
+
+def k_nearest_neighbors_train_test(X_train,Y_train,X_test,Y_test,param_tuple):
+#{
+   #param_tuple should be k, a positve integer
+   #returns the mean squared error for the test set
+   Y_predict = k_nearest_neighbors(X_train,Y_train,X_test,param_tuple)
+   mse = mean_squared_error(Y_predict,Y_test) 
+   return mse
+#}
+
