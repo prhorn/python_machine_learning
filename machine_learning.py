@@ -90,6 +90,53 @@ def linear_regression_train_test(X_train,Y_train,X_test,Y_test,param_tuple):
    return mse
 #} 
 
+def ridge_regression(X,Y,lambda_rr):
+#{
+   #lambda_rr = ridge regression shrinkage parameter
+   if (lambda_rr<0.0):
+      print 'shrinkage parameter cannot be negative in ridge regression'
+      sys.exit(1)
+   X_centered, mu = center_columns(X)
+   Y_centered, intercepts = center_columns(Y)
+   metric = np.dot(X_centered.T,X_centered) + np.diag(np.ones(X.shape[1])*lambda_rr)
+   U,s,V = np.linalg.svd(metric) #NB svals are decreasing
+   tol = 1.0E-8
+   n_indep = s.size
+   for i in s:
+      if (i < tol):
+         n_indep -= 1
+
+   if n_indep > 0:
+      metric_inv = np.dot(U[:,:n_indep],np.dot(np.diag(s[:n_indep]**-1),np.transpose(U[:,:n_indep])))
+   else:
+      print 'poorly posed problem in linear_regression'
+      sys.exit(1)
+   
+   B = np.dot(metric_inv,np.dot(X_centered.T,Y_centered))
+   B = np.vstack((B,intercepts))
+   return B,mu 
+#}
+
+def ridge_regression_predict(X_predict,B,mu):
+#{
+   X_shift = np.array(X_predict)
+   for i in range(X_shift.shape[1]):
+      X_shift[:,i] -= mu[i]
+   Y_predict = np.dot(np.column_stack((X_shift,np.ones(X_shift.shape[0]))),B)
+   return Y_predict
+#}
+
+def ridge_regression_train_test(X_train,Y_train,X_test,Y_test,param_tuple):
+#{
+   #fits ridge regression for outputs (Y cols) with predictors in X (cols) 
+   #plus an intercept based on training data and lambda in param_tuple and then computes
+   #the mean squared error for the test set
+   B,mu = ridge_regression(X_train,Y_train,param_tuple)
+   predicted_Y = ridge_regression_predict(X_test,B,mu) 
+   mse = mean_squared_error(predicted_Y,Y_test) 
+   return mse
+#} 
+
 def n_cross_validation(training_inputs,training_outputs,model_error_function,param_tuple,n):
 #{
    #perform CV(n)
@@ -266,4 +313,26 @@ def k_nearest_neighbors_classification_train_test(X_train,Y_train,X_test,Y_test,
    err = classification_error_rate(Y_predict,Y_test) 
    return err
 #}
+
+def center_columns(X):
+#{
+   mu = np.mean(X, axis=0)
+   X_centered = np.array(X)
+   for i in range(X.shape[1]):
+      X_centered[:,i] -=  mu[i]
+   return X_centered, mu
+#}
+
+def standardize_columns(X):
+#{
+   X_centered,mu = center_columns(X)
+   X_standardized = np.array(X_centered)
+   stdev = np.std(X_centered,axis=0) 
+   for i in range(X.shape[1]):
+      X_standardized[:,i] = X_centered[:,i]/stdev[i] 
+   return X_standardized, mu, stdev
+#}
+
+
+
 

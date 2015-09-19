@@ -165,15 +165,15 @@ def poly_order_of_cols(X,orders,include_cross):
             print 'based on binomial coef formula it should be: ',n_combinations
             sys.exit(1)
          to_add = np.zeros((X.shape[0],n_combinations))
-         for i in range(n_combiantions):
+         for i in range(n_combinations):
             temp = np.ones(X.shape[0])
             for c in range(p):
-               if (power_row_vector[i,c] > 0): 
-                  if (power_row_vector[i,c] == 1):
+               if (power_row_vectors[i,c] > 0): 
+                  if (power_row_vectors[i,c] == 1):
                      #no need to take the column to a power
                      temp = np.multiply(temp,X[:,c])
                   else:
-                     temp = np.multiply(temp,np.power(X[:,c],power_row_vector[i,c]))
+                     temp = np.multiply(temp,np.power(X[:,c],power_row_vectors[i,c]))
             to_add[:,i] = temp
          result = np.column_stack((result,to_add))
    return result
