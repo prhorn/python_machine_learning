@@ -24,6 +24,24 @@ def mean_squared_error(Y_predicted,Y_actual):
    return mse
 #}
 
+def classification_error_rate(Y_predicted,Y_actual):
+#{
+   if not (Y_predicted.shape[0] == Y_actual.shape[0]):
+      print 'number of rows of predicted and actual Y did not match'
+      sys.exit(1)
+   if not (Y_predicted.shape[1] == Y_actual.shape[1]):
+      print 'number of cols of predicted and actual Y did not match'
+      sys.exit(1)
+   diff = Y_predicted - Y_actual
+   err = np.zeros(Y_actual.shape[1])
+   for r in range(diff.shape[0]):
+      for c in range(diff.shape[1]):
+         if not (diff[r,c] ==0):
+            err[c] = err[c] + 1.0
+   err = err*(1.0/float(diff.shape[0]))
+   return err
+#}
+
 def linear_regression(X,Y,include_intercept):
 #{
    #solve B = (XtX)^-1 Xt Y
@@ -109,11 +127,8 @@ def n_cross_validation(training_inputs,training_outputs,model_error_function,par
    #and fit based on the other rows
 
    #permute the rows of input and output
-   permuted_inputs = np.zeros(training_inputs.shape)
-   permuted_outputs = np.zeros(training_outputs.shape)
-   for i in range(training_inputs.shape[0]):
-      permuted_inputs[i,:] = training_inputs[row_permutation[i],:]
-      permuted_outputs[i,:] = training_outputs[row_permutation[i],:]
+   permuted_inputs = training_inputs[row_permutation,:]
+   permuted_outputs = training_outputs[row_permutation,:]
       
    #columns will corresponds to the errors for each of the Y outputs predicted
    trial_results = np.zeros((n,training_outputs.shape[1]))
@@ -159,7 +174,7 @@ def n_cross_validation(training_inputs,training_outputs,model_error_function,par
 
 def k_nearest_neighbors(X_train,Y_train,X_predict,k):
 #{
-   #returns our predictions for Y at the values X_predit based on the test data
+   #returns our predictions for Y at the values X_predict based on the test data
    if not (X_train.shape[0] == Y_train.shape[0]):
       print 'number of observations in training data matrices did not agree in k_nearest_neighbors'
       sys.exit(1)
@@ -183,9 +198,9 @@ def k_nearest_neighbors(X_train,Y_train,X_predict,k):
    Y_predict = np.zeros((X_predict.shape[0],Y_train.shape[1]))
    for j in range(X_predict.shape[0]):
       sort_indices = np.argsort(sq_distances[:,j]) #sorts increasing 
-      sorted_output = Y_train[sort_indices,:]
+      sorted_output = Y_train[sort_indices[:k],:] #only grab the first k (smallest dist) post-sorting rows
       for c in range(Y_train.shape[1]):
-         Y_predict[j,c] = np.sum(sorted_output[:k,c])/float(k)
+         Y_predict[j,c] = np.sum(sorted_output[:,c])/float(k)
    
    return Y_predict
 #}
@@ -197,5 +212,58 @@ def k_nearest_neighbors_train_test(X_train,Y_train,X_test,Y_test,param_tuple):
    Y_predict = k_nearest_neighbors(X_train,Y_train,X_test,param_tuple)
    mse = mean_squared_error(Y_predict,Y_test) 
    return mse
+#}
+
+def k_nearest_neighbors_classification(X_train,Y_train,X_predict,k):
+#{
+   #returns our predictions for Y at the values X_predict based on the test data
+   #Y_train is assumed a single column of integers corresponding to the different classification groups
+   if not (Y_train.shape[1] == 1):
+      print 'Too many columns in Y. Only implemented for classification into one set of groups.'
+      sys.exit(1)
+   if not (X_train.shape[0] == Y_train.shape[0]):
+      print 'number of observations in training data matrices did not agree in k_nearest_neighbors'
+      sys.exit(1)
+   if not (X_train.shape[1] == X_predict.shape[1]):
+      print 'number of predictors (columns of X) inconsistent between predict and train'
+      sys.exit(1)
+   if (not (type(k) is int)) or (k<1):
+      print 'k must be a positive integger in k_nearest_neighbors'
+      sys.exit(1)
+   if (k>X_train.shape[0]):
+      print 'you asked for more neighbors than you provided training points. Try again'
+      sys.exit(1)
+
+   #determin the distance between each X point (observation) in train and in test
+   sq_distances = np.zeros((X_train.shape[0],X_predict.shape[0])) #square distances will still give us the same ordering
+   for i in range(X_train.shape[0]):
+      for j in range(X_predict.shape[0]):
+         disp_ij = X_train[i,:] - X_predict[j,:]
+         sq_distances[i,j] = np.dot(disp_ij,disp_ij)
+   
+   group_designations = np.unique(Y_train)
+   Y_predict = np.ndarray((X_predict.shape[0],1),dtype=np.int)
+   for j in range(X_predict.shape[0]):
+      sort_indices = np.argsort(sq_distances[:,j]) #sorts increasing 
+      sorted_output = Y_train[sort_indices[:k],:] #only grab the first k (smallest dist) post-sorting rows
+      group_counts = np.ndarray(group_designations.size,dtype=np.int)
+      group_counts.fill(0)
+      for i in sorted_output:
+         for g in range(len(group_designations)):
+            if (i == group_designations[g]):
+               group_counts[g] = group_counts[g]+1
+      g_index = np.argmax(group_counts) #figure out which group has the most votes, ignoring tie-breaking for now
+      Y_predict[j] = group_designations[g_index] 
+   
+   return Y_predict
+#}
+
+def k_nearest_neighbors_classification_train_test(X_train,Y_train,X_test,Y_test,param_tuple):
+#{
+   #param_tuple should be k, a positve integer
+   #returns the mean squared error for the test set
+   Y_predict = k_nearest_neighbors_classification(X_train,Y_train,X_test,param_tuple)
+   err = classification_error_rate(Y_predict,Y_test) 
+   return err
 #}
 

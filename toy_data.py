@@ -133,7 +133,7 @@ def classification_gaussians(n,p,m,diagonal_cov,display):
          ax.scatter(X[g*n:(g+1)*n,0],X[g*n:(g+1)*n,1],color = next(colors), label = str(g))
       plt.legend(loc='best')
       plt.show()
-   
+
    return X,Y 
 #}
 
