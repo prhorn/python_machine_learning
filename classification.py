@@ -8,7 +8,7 @@ from toy_data import *
 from sklearn.lda import LDA
 from sklearn.qda import QDA
 
-n=30
+n=50
 p=2
 m=5
 X,Y = classification_gaussians(n,p,m,False,False,True)
@@ -51,6 +51,10 @@ print 'cross validation classification error rate for QDA is  '+str(cv_QDA[0])
 #train_err_RDA = lin_quad_discriminant_analysis_train_test(X,Y,X,Y,(False,True,0.5))
 #print 'training data  error rate for RDA alpha=0.5 is  '+str(train_err_RDA[0])
 
+print 'computing cross validation error for Gaussian Naive Bayes'
+cv_gnb = n_cross_validation(X,Y,gaussian_naive_bayes_train_test,(False),10)
+print 'cross validation classification error rate for Gaussian Naive Bayes is  '+str(cv_gnb[0])
+
 k_max = 20
 k_values = range(1,k_max+1)
 errors_for_k = np.zeros(k_max)
@@ -78,5 +82,8 @@ QDA_const = np.zeros(len(k_values))
 QDA_const.fill(cv_QDA[0])
 ax.scatter(k_values,QDA_const, s=10, c='g', marker="s", label='QDA Error Rate')
 ax.scatter(k_values,errors_for_alpha, s=10, c='m', marker="s", label='RDA Classification Error Rate vs even alpha(0-1)')
+gnb_const = np.zeros(len(k_values))
+gnb_const.fill(cv_gnb[0])
+ax.scatter(k_values,gnb_const, s=10, c='y', marker="s", label='Gaussian Naive Bayes Error Rate')
 plt.legend(loc='best')
 plt.show()

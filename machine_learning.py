@@ -510,3 +510,101 @@ def lin_quad_discriminant_analysis_train_test(X_train,Y_train,X_test,Y_test,para
    err = classification_error_rate(Y_predict,Y_test) 
    return err
 #}
+
+def gaussian_naive_bayes_train(X,Y):
+#{
+   #INPUT:
+   #  X:                   training predictors
+   #  Y:                   (training outs) is assumed to have labels for k classes with integer values between 0 and k-1
+
+   #OUTPUT:
+   #  mu:      the class means of the p columns of X in a k by p matrix
+   #  pi:      class priors in a vector k long
+   #  var:   the class variances of the p columns of X in a k by p matrix 
+
+   #checks of input 
+   if not (Y.shape[1] == 1):
+      print 'Too many columns in Y. Only implemented for classification into one set of groups.'
+      sys.exit(1)
+   if not (X.shape[0] == Y.shape[0]):
+      print 'number of observations in training data matrices did not agree'
+      sys.exit(1)
+   
+   #we need to do within-group computations. sort our training data by group
+   sort_indices = np.argsort(Y[:,0])
+   Y_sorted = Y[sort_indices,:]
+   X_sorted = X[sort_indices,:]
+   n_each_group = np.bincount(Y_sorted.reshape(Y_sorted.size)) 
+   k = n_each_group.size
+
+   #compute group priors
+   pi = n_each_group / float(X_sorted.shape[0])
+
+   #compute gaussian centers and variances
+   mu = np.zeros((n_each_group.size,X_sorted.shape[1]))
+   var = np.zeros((n_each_group.size,X_sorted.shape[1]))
+   for g in range(k):
+      if n_each_group[g] > 0:
+         obs_for_g = np.array(X_sorted[sum(n_each_group[:g]):sum(n_each_group[:g+1]),:])
+         mu[g,:] = np.mean(obs_for_g, axis=0)
+         for c in range(var.shape[1]):
+            temp = obs_for_g[:,c] - mu[g,c]
+            var[g,c] = np.dot(temp,temp)/float(n_each_group[g]-1)
+      else:
+         print 'TOOD can we cleanly deal with the case of having no samples from a group?'
+         sys.exit(1)
+   
+   return mu,pi,var
+#}
+
+def gaussian_naive_bayes_predict(X_predict,mu,pi,var):
+#{
+   #Designed to be used with the output of gaussian_naive_bayes_train
+   #
+   #INPUT:
+   #  X_predict:  predictors for observations that we want class predictions for (n x p)
+   #  mu:         predictor means for each of the k classes (k x p)
+   #  pi:         class priors (k long vector)
+   #  var:        group variances kxp 
+   #OUTPUT:
+   #  Y_predict:  our class predictions for the passed observations (labels 0 to k-1) 
+   
+   #check for consistence in inputs
+   if not (X_predict.shape[1] == mu.shape[1]):
+      print 'columns of X  (number of predictors) does not agree with the columns of mu (predictor class means)'
+      sys.exit(1)
+   if not (mu.shape[0] == pi.size):
+      print 'rows of mu (predictor means for k classes) not equal ot the number of elements in pi (class priors)'
+      sys.exit(1)
+   if not ((mu.shape[0] == var.shape[0]) and (mu.shape[1] == var.shape[1])):
+      print 'dimensions of matrices of predictor means and variances for each class were inconsistent'
+      sys.exit(1)
+   
+   #get logs of priors out of the way
+   ln_pi = np.log(pi)
+   
+   #compute discriminants
+   discriminants = np.zeros((X_predict.shape[0],mu.shape[0])) #each row contains the discrimiant values for an observation
+   for g in range(mu.shape[0]):
+      #compute discriminants[:,g]
+      #d(x1,x2,x3)g = ln_pi_g + \sum_i [ln(1/sqrt(2pi * var_gi)) - (1/(2 var_gi)) (xi - mu_gi)^2]
+      for i in range(mu.shape[1]):
+         discriminants[:,g] += (-1.0/(2.0*var[g,i]))*((X_predict[:,i] - mu[g,i])**2) #the square is element-wise
+         discriminants[:,g] += (-0.5)*np.log(2.0*np.pi*var[g,i])#normalization factor part
+      discriminants[:,g] += ln_pi[g]
+
+   #classify based on largest discriminant
+   Y_predict = np.ndarray(buffer=np.argmax(discriminants,axis=1),shape=(X_predict.shape[0],1),dtype=np.int)
+   return Y_predict
+#}
+
+def gaussian_naive_bayes_train_test(X_train,Y_train,X_test,Y_test,param_tuple):
+#{
+   #param_tuple is ignored
+   #returns the mean squared error for the test set
+   mu,pi,var = gaussian_naive_bayes_train(X_train,Y_train)
+   Y_predict = gaussian_naive_bayes_predict(X_test,mu,pi,var)
+   err = classification_error_rate(Y_predict,Y_test) 
+   return err
+#}
+
