@@ -86,36 +86,54 @@ def polynomial_n_Xp_Ym(n,p,m,orders,n_relevant_orders,include_cross):
    return X,Y
 #}
 
-def classification_gaussians(n,p,m,diagonal_cov,display):
+def classification_gaussians(n,p,m,diagonal_cov=False,same_cov=False,display=False):
 #{
    #INPUT:
    #  n: the number of observations from each group
    #  p: the number of predictors
    #  m: the number of distinct groups. numbered 0 to m-1
    #  diagonal_cov: whether the covarience matrix for each of the gaussians is diagonal
+   #  same_cov: if true, use the same covariance matrix for all groups
    #OUTPUT:
    #  X predictors associated with each of the n*m observation
    #  Y classification of the m*n observations
    
    Y = np.ndarray((0,1),dtype=np.int)
    X = np.ndarray((0,p))
+
+   if same_cov:
+      if diagonal_cov:
+         common_sigma = np.diag(np.random.rand(p)*100.0 +1.0) 
+      else:
+         common_sigma = np.random.rand(p,p)*100.0 + np.diag(np.ones(p))
+         common_sigma = 0.5*(common_sigma + np.transpose(common_sigma)) #make symmetric
+         #check that we are positve definite and fix if not
+         eigval,eigvec =  np.linalg.eigh(common_sigma)
+         tol = 1.0E-6
+         if (min(eigval) < tol):
+            new_eval = eigval + (tol - min(eigval))
+            common_sigma = np.dot(np.dot(eigvec,np.diag(eigval)),np.transpose(eigvec))
+      
    for g in range(m):
       #mu = np.array([40.0,60.0])
       mu = np.random.rand(p)*100.0 #means 
       #print 'means for group g='+str(g)
       #print mu
       #sigma = np.array([100.0,30.0,30.0,140.0]).reshape(2,2)
-      if diagonal_cov:
-         sigma = np.diag(np.random.rand(p)*100.0 +1.0) 
+      if same_cov:
+         sigma = common_sigma
       else:
-         sigma = np.random.rand(p,p)*100.0 + np.diag(np.ones(p))
-         sigma = 0.5*(sigma + np.transpose(sigma)) #make symmetric
-         #check that we are positve definite and fix if not
-         eigval,eigvec =  np.linalg.eigh(sigma)
-         tol = 1.0E-6
-         if (min(eigval) < tol):
-            new_eval = eigval + (tol - min(eigval))
-            sigma = np.dot(np.dot(eigvec,np.diag(eigval)),np.transpose(eigvec))
+         if diagonal_cov:
+            sigma = np.diag(np.random.rand(p)*100.0 +1.0) 
+         else:
+            sigma = np.random.rand(p,p)*100.0 + np.diag(np.ones(p))
+            sigma = 0.5*(sigma + np.transpose(sigma)) #make symmetric
+            #check that we are positve definite and fix if not
+            eigval,eigvec =  np.linalg.eigh(sigma)
+            tol = 1.0E-6
+            if (min(eigval) < tol):
+               new_eval = eigval + (tol - min(eigval))
+               sigma = np.dot(np.dot(eigvec,np.diag(eigval)),np.transpose(eigvec))
       #print 'sigma for group g='+str(g)
       #print sigma
       Y_g = np.ndarray((n,1),dtype=np.int)
@@ -124,15 +142,18 @@ def classification_gaussians(n,p,m,diagonal_cov,display):
       Y = np.vstack((Y,Y_g))
       X = np.vstack((X,X_g))
    
-   if display and (p == 2):
-      #we have been asked to plot the data and we can easily
-      colors = itertools.cycle(["r","g","b","c","m"])
-      fig = plt.figure()
-      ax = fig.add_subplot(111)
-      for g in range(m):
-         ax.scatter(X[g*n:(g+1)*n,0],X[g*n:(g+1)*n,1],color = next(colors), label = str(g))
-      plt.legend(loc='best')
-      plt.show()
+   if display: 
+      if (p == 2):
+         #we have been asked to plot the data and we can easily
+         colors = itertools.cycle(["r","g","b","c","m"])
+         fig = plt.figure()
+         ax = fig.add_subplot(111)
+         for g in range(m):
+            ax.scatter(X[g*n:(g+1)*n,0],X[g*n:(g+1)*n,1],color = next(colors), label = str(g))
+         plt.legend(loc='best')
+         plt.show()
+      else:
+         print 'displaying data only implemented for 2 predictors (X cols, p)'
 
    return X,Y 
 #}

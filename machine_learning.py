@@ -333,6 +333,159 @@ def standardize_columns(X):
    return X_standardized, mu, stdev
 #}
 
+def lin_quad_discriminant_analysis_train(X,Y,is_LDA=True,do_regularization=False,gamma=1.0,alpha=1.0):
+#{
+   #INPUT:
+   #  X:                   training predictors
+   #  Y:                   (training outs) is assumed to have labels for k classes with integer values between 0 and k-1
+   #  is_LDA:              if true, do LDA instead of QDA. only one sigma is prduced in this case (only gamma is relevant)
+   #  do_regularization:   if true, make use of gamma and if QDA alpha as well in determination of covariance matrices (sigmas)
+   #  gamma:               small gamma makes spherical -- sigma = gamma*sigma + (1-gamma)*I*var
+   #  alpha:               smaller alpha makes QDA more like LDA -- sigma_k = alpha*sigma_k + (1-alpha)*sigma
 
+   #OUTPUT:
+   #  mu:      the class means of the p columns of X in a k by p matrix
+   #  pi:      vector of class priors (k of them)
+   #  sigma:   list of covarance matrices, either 1 for LDA or k for QDA 
+   
+   #checks of input 
+   if not (Y.shape[1] == 1):
+      print 'Too many columns in Y. Only implemented for classification into one set of groups.'
+      sys.exit(1)
+   if not (X.shape[0] == Y.shape[0]):
+      print 'number of observations in training data matrices did not agree'
+      sys.exit(1)
+   if do_regularization:
+      if (alpha < 0.0) or (alpha > 1.0):
+         print 'alpha must be between 0 and 1'
+         sys.exit(1)
+      if (alpha < 0.0) or (alpha > 1.0):
+         print 'alpha must be between 0 and 1'
+         sys.exit(1)
+   
+   #we need to do within-group computations. sort our training data by group
+   sort_indices = np.argsort(Y[:,0])
+   Y_sorted = Y[sort_indices,:]
+   X_sorted = X[sort_indices,:]
+   n_each_group = np.bincount(Y_sorted.reshape(Y_sorted.size)) 
+   k = n_each_group.size
 
+   #compute group priors
+   pi = n_each_group / float(X_sorted.shape[0])
 
+   #compute gaussian centers
+   mu = np.zeros((n_each_group.size,X_sorted.shape[1]))
+   for g in range(k):
+      if n_each_group[g] > 0:
+         obs_for_g = X_sorted[sum(n_each_group[:g]):sum(n_each_group[:g+1]),:]
+         mu[g,:] = np.mean(obs_for_g, axis=0)
+      else:
+         print 'TOOD can we cleanly deal with the case of having no samples from a group?'
+         sys.exit(1)
+   
+   #compute covariance matrices
+   #TODO we could probably make this more efficient by combining mu and sigma calcualtions
+   sigma = []
+   if is_LDA:
+      sig_lda = np.zeros((X_sorted.shape[1],X_sorted.shape[1]))
+      for g in range(k):
+         if n_each_group[g] > 0:
+            obs_for_g = X_sorted[sum(n_each_group[:g]):sum(n_each_group[:g+1]),:]
+            for c in range(obs_for_g.shape[1]):
+               obs_for_g[:,c] -= mu[g,c]
+            sig_lda += np.dot(obs_for_g.T,obs_for_g)
+      sig_lda *= (1.0/float(X_sorted.shape[0] -k))
+      sigma.append(sig_lda)
+   else:
+      print 'TODO'
+      sys.exit(1)
+   
+   if do_regularization:
+      print 'TODO'
+      sys.exit(1)
+      
+   return mu,pi,sigma
+#}
+
+def lin_quad_discriminant_analysis_predict(X_predict,mu,pi,sigma):
+#{
+   #Designed to be used with the output of lin_quad_discriminant_analysis_train
+   #
+   #INPUT:
+   #  X_predict:  predictors for observations that we want class predictions for (n x p)
+   #  mu:         predictor means for each of the k classes (k x p)
+   #  pi:         class priors (k long vector)
+   #  sigma:      class covariance matrices (1 if we did LDA, k if we did QDA)
+   #OUTPUT:
+   #  Y_predict:  our class predictions for the passed observations (labels 0 to k-1) 
+   
+   #check for consistence in inputs
+   if not (X_predict.shape[1] == mu.shape[1]):
+      print 'columns of X  (number of predictors) does not agree with the columns of mu (predictor class means)'
+      sys.exit(1)
+   if not (mu.shape[0] == pi.size):
+      print 'rows of mu (predictor means for k classes) not equal ot the number of elements in pi (class priors)'
+      sys.exit(1)
+   if not ((len(sigma) == 1) or (len(sigma)==pi.size)):
+      print 'number of sigmas passed (covariance matrices) not consistent with LDA (1) or QDA (k)'
+      sys.exit(1)
+   
+   #get this out of the way
+   ln_pi = np.log(pi)
+   
+   #we only have to invert one sigma if we are LDA, so do it now
+   do_LDA = False
+   if len(sigma) == 1:
+      do_LDA = True   
+   
+   if do_LDA:
+      #compute sigma_inv = inv(sigma[0])
+      U,s,V = np.linalg.svd(sigma[0]) #NB svals are decreasing and rows of V are right evecs
+      tol = 1.0E-8
+      n_indep = s.size
+      for i in s:
+         if (i < tol):
+            n_indep -= 1
+      if n_indep > 0:
+         sigma_inv = np.dot(U[:,:n_indep],np.dot(np.diag(s[:n_indep]**-1),np.transpose(U[:,:n_indep])))
+      else:
+         print 'we were pass a garbage covarance matrix -- no non-zero singular values'
+         sys.exit(1)
+
+   discriminants = np.zeros((X_predict.shape[0],mu.shape[0])) #each row contains the discrimiant values for an observation
+   #ESL (at least for LDA. TODO check for QDA):
+   #delta_g(x) = x.t sigma^-1 mu_g - 0.5* mu_g.t sigma^-1 mu_g + ln_pi_g
+   for g in range(mu.shape[0]):
+      #get the inverse of the covariance matrix for this group/class
+      if do_LDA:
+         sigma_g_inv = sigma_inv
+      else:
+         print 'not sure if QDA is correct'
+         sys.exit(1)
+         U,s,V = np.linalg.svd(sigma[g]) #NB svals are decreasing and rows of V are right evecs
+         tol = 1.0E-8
+         n_indep = s.size
+         for i in s:
+            if (i < tol):
+               n_indep -= 1
+         if n_indep > 0:
+            sigma_g_inv = np.dot(U[:,:n_indep],np.dot(np.diag(s[:n_indep]**-1),np.transpose(U[:,:n_indep])))
+         else:
+            print 'we were pass a garbage covarance matrix -- no non-zero singular values'
+            sys.exit(1)
+      sigma_mu_g = np.dot(sigma_g_inv,np.transpose(mu[g,:]))
+      discriminants[:,g] = np.dot(X_predict,sigma_mu_g) - 0.5*np.dot(mu[g,:],sigma_mu_g) + ln_pi[g]
+   Y_predict = np.ndarray(buffer=np.argmax(discriminants,axis=1),shape=(X_predict.shape[0],1),dtype=np.int)
+   
+   return Y_predict
+#}
+
+def lin_quad_discriminant_analysis_train_test(X_train,Y_train,X_test,Y_test,param_tuple):
+#{
+   #param_tuple should be (is_LDA,do_regularization,gamma,alpha)
+   #returns the mean squared error for the test set
+   mu,pi,sigma = lin_quad_discriminant_analysis_train(X_train,Y_train,param_tuple[0],param_tuple[1],param_tuple[2],param_tuple[3])
+   Y_predict = lin_quad_discriminant_analysis_predict(X_test,mu,pi,sigma)
+   err = classification_error_rate(Y_predict,Y_test) 
+   return err
+#}
