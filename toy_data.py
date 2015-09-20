@@ -103,20 +103,20 @@ def classification_gaussians(n,p,m,diagonal_cov=False,same_cov=False,display=Fal
 
    if same_cov:
       if diagonal_cov:
-         common_sigma = np.diag(np.random.rand(p)*100.0 +1.0) 
+         common_sigma = np.diag(np.random.rand(p) +1.0)*10.0 
       else:
-         common_sigma = np.random.rand(p,p)*100.0 + np.diag(np.ones(p))
+         common_sigma = (np.random.rand(p,p) + np.diag(np.ones(p)))*10.0
          common_sigma = 0.5*(common_sigma + np.transpose(common_sigma)) #make symmetric
          #check that we are positve definite and fix if not
          eigval,eigvec =  np.linalg.eigh(common_sigma)
-         tol = 1.0E-6
+         tol = 1.0E-3
          if (min(eigval) < tol):
-            new_eval = eigval + (tol - min(eigval))
+            new_eval = eigval + (1.0 - min(eigval))
             common_sigma = np.dot(np.dot(eigvec,np.diag(eigval)),np.transpose(eigvec))
       
    for g in range(m):
       #mu = np.array([40.0,60.0])
-      mu = np.random.rand(p)*100.0 #means 
+      mu = np.random.rand(p)*30.0 #means 
       #print 'means for group g='+str(g)
       #print mu
       #sigma = np.array([100.0,30.0,30.0,140.0]).reshape(2,2)
@@ -124,15 +124,15 @@ def classification_gaussians(n,p,m,diagonal_cov=False,same_cov=False,display=Fal
          sigma = common_sigma
       else:
          if diagonal_cov:
-            sigma = np.diag(np.random.rand(p)*100.0 +1.0) 
+            sigma = np.diag(np.random.rand(p) +1.0)*10.0
          else:
-            sigma = np.random.rand(p,p)*100.0 + np.diag(np.ones(p))
+            sigma = (np.random.rand(p,p) + np.diag(np.ones(p)))*10.0
             sigma = 0.5*(sigma + np.transpose(sigma)) #make symmetric
             #check that we are positve definite and fix if not
             eigval,eigvec =  np.linalg.eigh(sigma)
-            tol = 1.0E-6
+            tol = 1.0E-3
             if (min(eigval) < tol):
-               new_eval = eigval + (tol - min(eigval))
+               new_eval = eigval + (1.0 - min(eigval))
                sigma = np.dot(np.dot(eigvec,np.diag(eigval)),np.transpose(eigvec))
       #print 'sigma for group g='+str(g)
       #print sigma
