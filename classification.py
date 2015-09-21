@@ -55,6 +55,10 @@ print 'computing cross validation error for Gaussian Naive Bayes'
 cv_gnb = n_cross_validation(X,Y,gaussian_naive_bayes_train_test,(False),10)
 print 'cross validation classification error rate for Gaussian Naive Bayes is  '+str(cv_gnb[0])
 
+print 'computing training error for Unpruned Decision Tree'
+train_err_udt = decision_tree_train_test(X,Y,X,Y,(True,5))
+print 'training data  error rate for Unpruned Decision Tree is  '+str(train_err_udt[0])
+
 k_max = 20
 k_values = range(1,k_max+1)
 errors_for_k = np.zeros(k_max)

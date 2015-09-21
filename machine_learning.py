@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+from decision_trees import decision_tree
 
 def mean_squared_error(Y_predicted,Y_actual):
 #{
@@ -608,3 +609,31 @@ def gaussian_naive_bayes_train_test(X_train,Y_train,X_test,Y_test,param_tuple):
    return err
 #}
 
+def decision_tree_train(X,Y,is_classification,term_node_pop=5):
+#{
+   #X,Y training data
+   #is_classification indicates that Y is a single column with int labels in 0 to k-1 for k groups
+   #term_node_pop our end condition. end when the max population at any node is this
+   tree = decision_tree(X,Y,is_classification)
+   while (tree.add_a_branch()): #function returns false if adding a branch would not reduce error 
+      if (max(tree.n_obs_term_node) <= term_node_pop):
+         break #our alternative end condition - when all pops sufficently small
+
+   return tree
+#}
+
+def decision_tree_train_test(X_train,Y_train,X_test,Y_test,param_tuple):
+#{
+   #returns the mean squared error for the test set
+   is_classification = param_tuple[0]
+   term_node_pop = param_tuple[1]
+   
+   tree = decision_tree_train(X_train,Y_train,is_classification,term_node_pop)
+   Y_predict = tree.predict(X_test)  
+   if is_classification:
+      err = classification_error_rate(Y_predict,Y_test) 
+   else:
+      err = mean_squared_error(Y_predict,Y_test) 
+      
+   return err
+#}

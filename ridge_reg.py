@@ -7,7 +7,7 @@ from machine_learning import *
 from toy_data import *
 
 #generate data
-n=1000
+n=500
 p=5
 m=1
 max_order = 3
