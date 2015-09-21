@@ -57,10 +57,11 @@ class decision_tree:
    
    def add_a_branch(self):
    #{
+      #add a branch by recursive bianry splitting
       #for all terminal branches, determine the optimal cut
       success = False #we will return true if we add a branch
       best_node_index = -1 #the node that will get the cut
-      best_node_error_change = -1.0E-8 #I don't like the idea of comparing zeros
+      best_node_error_change = -1.0E-10 #I don't like the idea of comparing zeros
       best_node_cut_index = -1 #the column of X for the cut
       best_node_cut_value = -1.0 
       for n in range(len(self.terminal_nodes)):
@@ -182,19 +183,27 @@ class tree_node:
       self.is_terminal = False
    #}
    
-   def compute_error(self,temp_Y):
+   def compute_error(self,temp_Y,use_classification_error_rate=True):
    #{
+      #if use_classification_error_rate is true, use the 
+      #classification error rate instead of the gini index for class trees
       #compute our error measure for a set of Ys
       #we can also compute for out Ys or a subset of our Ys for instance
       #error will be a scalar even if we are predicting multiple outputs
       error = 0.0
       if self.is_classification:
-         #gini index
-         #we need to determine the fraction of our training observations coming from each class
-         uniques,counts = np.unique(temp_Y[:,0],return_counts=True) 
-         fracs_group = counts / float(temp_Y.shape[0])
-         for i in fracs_group:
-            error += i * (1.0 - i)
+         if use_classification_error_rate:
+            #our error is the classification error rate
+            uniques,counts = np.unique(temp_Y[:,0],return_counts=True) 
+            fracs_group = counts / float(temp_Y.shape[0])
+            error = 1.0 - max(fracs_group)
+         else:
+            #gini index - measure of node purity
+            #we need to determine the fraction of our training observations coming from each class
+            uniques,counts = np.unique(temp_Y[:,0],return_counts=True) 
+            fracs_group = counts / float(temp_Y.shape[0])
+            for i in fracs_group:
+               error += i * (1.0 - i)
       else:
          temp_value = np.mean(temp_Y,axis=0)
          if (temp_Y.shape[1] == 1): #special case because value is not a vector
@@ -213,7 +222,7 @@ class tree_node:
          parent_node_error = self.compute_error(self.Y_train)
          
          self.opt_cut_valid = False #set to true below if we find a valid cut 
-         self.opt_error_change = -1.0E-8 #make sure we don't cut if we can't reduce the residual 
+         self.opt_error_change = -1.0E-10 #make sure we don't cut if we can't reduce the residual 
          self.opt_cut_index = -1
          self.opt_cut_value = -1.0
          #if I understand the algorithm correctly we

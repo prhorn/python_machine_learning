@@ -36,13 +36,29 @@ for l in lambdas:
    print 'ridge regression lambda is '+str(l)+' and cvn mse is ',cvn_rr
    rr_vs_lambda.append(cvn_rr[0])
 
+#Now lets try a regression tree
+print 'computing training error for Unpruned Decision Tree'
+train_udt = decision_tree_train_test(X_aug,Y,X_aug,Y,(False,10))
+print 'unpruned decision tree training mse is ',train_udt
+
+print 'performing cross validation CV('+str(cvn)+') for Unpruned Decision Tree'
+cvn_udt = n_cross_validation(X_aug,Y,decision_tree_train_test,(False,10),cvn)
+print 'unpruned decision tree cvn mse is ',cvn_udt
+
+
 if (m==1):
    fig = plt.figure()
    ax = fig.add_subplot(111)
    lr_vs_lambda = np.zeros(lambdas.size)
    lr_vs_lambda.fill(cvn_lr[0])
-   ax.scatter(lambdas,lr_vs_lambda,s=10,c='b',marker="s",label="LR")
-   ax.scatter(lambdas,rr_vs_lambda,s=10,c='r',marker="o",label="RR")
-   plt.legend(loc='upper right');
+   ax.scatter(lambdas,lr_vs_lambda,s=10,c='b',marker="s",label="LR CVn")
+   ax.scatter(lambdas,rr_vs_lambda,s=10,c='r',marker="s",label="RR CVn")
+   udt_train_vs_lambda = np.zeros(lambdas.size)
+   udt_train_vs_lambda.fill(train_udt[0])
+   ax.scatter(lambdas,udt_train_vs_lambda,s=10,c='g',marker="s",label="Decision Tree Train")
+   udt_cvn_vs_lambda = np.zeros(lambdas.size)
+   udt_cvn_vs_lambda.fill(cvn_udt[0])
+   ax.scatter(lambdas,udt_cvn_vs_lambda,s=10,c='m',marker="s",label="Decision Tree CVn")
+   plt.legend(loc='best');
    plt.show()
 

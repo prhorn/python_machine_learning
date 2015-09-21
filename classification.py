@@ -59,6 +59,10 @@ print 'computing training error for Unpruned Decision Tree'
 train_err_udt = decision_tree_train_test(X,Y,X,Y,(True,5))
 print 'training data  error rate for Unpruned Decision Tree is  '+str(train_err_udt[0])
 
+print 'computing cross validation error for Unpruned Decision Tree'
+cv_udt = n_cross_validation(X,Y,decision_tree_train_test,(True,5),10)
+print 'cross validation classification error rate for Unpruned Decision Tree is  '+str(cv_udt[0])
+
 k_max = 20
 k_values = range(1,k_max+1)
 errors_for_k = np.zeros(k_max)
