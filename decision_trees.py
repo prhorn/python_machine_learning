@@ -60,12 +60,12 @@ class decision_tree:
       #for all terminal branches, determine the optimal cut
       success = False #we will return true if we add a branch
       best_node_index = -1 #the node that will get the cut
-      best_node_error_change = -0.0001 #I don't like the idea of comparing zeros
+      best_node_error_change = -1.0E-8 #I don't like the idea of comparing zeros
       best_node_cut_index = -1 #the column of X for the cut
       best_node_cut_value = -1.0 
       for n in range(len(self.terminal_nodes)):
-         error_change_n,cut_index_n,cut_value_n = self.terminal_nodes[n].determine_optimal_cut() 
-         if (error_change_n < best_node_error_change):
+         valid_n,error_change_n,cut_index_n,cut_value_n = self.terminal_nodes[n].determine_optimal_cut() 
+         if valid_n and (error_change_n < best_node_error_change):
             best_node_index = n
             best_node_error_change = error_change_n
             best_node_cut_index = cut_index_n
@@ -85,7 +85,6 @@ class decision_tree:
          self.n_obs_term_node.append(best_node.branches[0].obs_for_node())
          self.n_obs_term_node.append(best_node.branches[1].obs_for_node())
          success = True
-
       #convey that we added a branch
       return success
    #}
@@ -97,13 +96,13 @@ class decision_tree:
       else:
          n_predictions = X_predict.shape[0]
       
-      if is_classification:
-         Y_predict = np.ndarray(shape=(n_predictions,m),dtype=np.int)
+      if self.is_classification:
+         Y_predict = np.ndarray(shape=(n_predictions,self.m),dtype=np.int)
       else:
-         Y_predict = np.ndarray(shape=(n_predictions,m),dtype=np.float)
+         Y_predict = np.ndarray(shape=(n_predictions,self.m),dtype=np.float)
 
       for i in range(n_predictions):
-         Y_predict[i,:] = base_node.predict(X_predict[i,:])
+         Y_predict[i,:] = self.base_node.predict(X_predict[i,:])
       
       return Y_predict
    #}
@@ -126,6 +125,7 @@ class tree_node:
    
    #determined_opt_cut: bool saying whether we have already computed the optimal
    #                    next branching from this node
+   #opt_cut_valid
    #opt_cut_index
    #opt_cut_value
    #opt_error_change
@@ -163,10 +163,6 @@ class tree_node:
       #zero dimension check
       if (first_greater_eq_index <1):
          print 'our partitioning of this node resulted in a branch having zero obs'
-         print 'cut_index ',self.cut_index
-         print 'cut_value ',self.cut_value
-         print 'X_train '
-         print self.X_train
          sys.exit(1)
 
       #find the predicted values of Y for the branches
@@ -213,10 +209,11 @@ class tree_node:
    def determine_optimal_cut(self):
    #{
       
-      if not self.determined_opt_cut:
+      if not self.determined_opt_cut: #internal variable telling us if we need to do this calcualtion
          parent_node_error = self.compute_error(self.Y_train)
          
-         self.opt_error_change = 100.0 #make sure we don't try to make a cut if we don't find a valid one
+         self.opt_cut_valid = False #set to true below if we find a valid cut 
+         self.opt_error_change = -1.0E-8 #make sure we don't cut if we can't reduce the residual 
          self.opt_cut_index = -1
          self.opt_cut_value = -1.0
          #if I understand the algorithm correctly we
@@ -232,15 +229,16 @@ class tree_node:
                cur_error_change = cur_error - parent_node_error
                if (cur_error_change < self.opt_error_change):
                   #we have found a better split
+                  self.opt_cut_valid = True
                   self.opt_cut_index = c
                   self.opt_error_change = cur_error_change
                   #average of the first x in the greater block and last in the less block
-                  self.opt_cut_value = (x_col_sorted[start_of_greater] - x_col_sorted[start_of_greater-1])/2.0
+                  self.opt_cut_value = x_col_sorted[start_of_greater-1] + (x_col_sorted[start_of_greater] - x_col_sorted[start_of_greater-1])/2.0
          self.determined_opt_cut = True
       #else:
-         #we have already done this calculation and stored the result as members
+         #we have already done this calculation and stored the results as members
 
-      return self.opt_error_change,self.opt_cut_index,self.opt_cut_value
+      return self.opt_cut_valid,self.opt_error_change,self.opt_cut_index,self.opt_cut_value
    #}
 
    def obs_for_node(self):
