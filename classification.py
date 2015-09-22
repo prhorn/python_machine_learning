@@ -56,17 +56,18 @@ cv_gnb = n_cross_validation(X,Y,gaussian_naive_bayes_train_test,(False),10)
 print 'cross validation classification error rate for Gaussian Naive Bayes is  '+str(cv_gnb[0])
 
 print 'computing training error for Unpruned Decision Tree'
-train_err_udt = decision_tree_train_test(X,Y,X,Y,(True,5))
+train_err_udt = decision_tree_train_test(X,Y,X,Y,(True,3))
 print 'training data  error rate for Unpruned Decision Tree is  '+str(train_err_udt[0])
 
 print 'computing cross validation error for Unpruned Decision Tree'
-cv_udt = n_cross_validation(X,Y,decision_tree_train_test,(True,5),10)
+cv_udt = n_cross_validation(X,Y,decision_tree_train_test,(True,3),10)
 print 'cross validation classification error rate for Unpruned Decision Tree is  '+str(cv_udt[0])
 
 k_max = 20
 k_values = range(1,k_max+1)
 errors_for_k = np.zeros(k_max)
 #use cross validation to choose k
+print 'computing cross validation error for kNN'
 for k in k_values:
    cv = n_cross_validation(X,Y,k_nearest_neighbors_classification_train_test,k,10)
    print 'cross validation classification error rate for kNN k='+str(k)+' is  '+str(cv[0])
@@ -75,10 +76,19 @@ for k in k_values:
 alpha_values = np.linspace(0.05,0.95,num=k_max,endpoint=True) #so that we can put it on the same plot easily
 errors_for_alpha = []
 #use cross validation to choose alpha
+print 'computing cross validation error for RDA'
 for a in alpha_values:
    cva = n_cross_validation(X,Y,lin_quad_discriminant_analysis_train_test,(False,True,a),10)
    print 'cross validation classification error rate for RDA alpha='+str(a)+' is  '+str(cva[0])
    errors_for_alpha.append(cva[0])
+
+print 'computing cross validation error for Pruned Decision Tree'
+alpha_values_tree = np.linspace(0.5,10.0,num=k_max,endpoint=True) #so that we can put it on the same plot easily
+errors_for_alpha_tree = []
+for a in alpha_values_tree:
+   cv_pdt = n_cross_validation(X,Y,pruned_decision_tree_train_test,(True,5,a),10)
+   print 'cross validation classification error rate for Pruned Decision Tree (alpha='+str(a)+') is  '+str(cv_pdt[0])
+   errors_for_alpha_tree.append(cv_pdt[0])
 
 fig = plt.figure()
 ax = fig.add_subplot(111) #grab axis object

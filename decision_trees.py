@@ -1,6 +1,7 @@
 import numpy as np
 import sys
 from scipy import stats
+from copy import *
 
 class decision_tree:
 #{
@@ -55,6 +56,30 @@ class decision_tree:
       self.n_obs_term_node.append(self.base_node.obs_for_node()) 
    #}
    
+   def __deepcopy__(self,memo):
+   #{
+      #TODO I'm not really sure what I should be doing with memo...
+      the_copy = decision_tree(np.array(self.X),np.array(self.Y),copy.deepcopy(self.is_classification))
+      
+      #we still need to handle:
+      #   base_node 
+      #   terminal_nodes 
+      #   n_obs_term_node
+      #copy the base node and all connected nodes
+      #we made our own separate function for copy because we want to pass on parent info
+      #the base node has no parent 
+      the_copy.base_node = self.base_node.return_deepcopy(None) 
+      
+      #clear the existing terminal node lists
+      the_copy.n_opbs_term_node = []
+      the_copy.terminal_nodes = []
+      #repopulate the lists
+      the_copy.terminal_nodes = the_copy.base_node.return_list_terminal_nodes()
+      for i in the_copy.terminal_nodes:
+         the_copy.n_obs_term_node.append(i.obs_for_node())
+      return the_copy
+   #}
+
    def add_a_branch(self):
    #{
       #add a branch by recursive bianry splitting
@@ -107,6 +132,92 @@ class decision_tree:
       
       return Y_predict
    #}
+   
+   def prune(self,alpha):
+   #{
+      #perform cost complexity pruning of the tree with pruning parameter alpha
+      #this function modifies self to be the pruned tree
+      if not alpha > 0.0:
+         print 'pruning parameter cannot be negative. passed alpha='+str(alpha)
+         sys.exit(1)
+      
+      #generated trees should be nested, so we will always consider popping from the terminal
+      #node list of the next higher rank space
+      #start with the node list of the max rank space
+      best_terminal_node_list = copy(self.terminal_nodes) #still references same objects
+      #get the error for the full tree. we will have to beat this to delete any branches
+      best_prune_error = 0.0 
+      for i in best_terminal_node_list:
+         best_prune_error += (i.compute_error(i.Y_train,True) + alpha)
+      
+      #now we consider trees of reduced rank (number of terminal nodes)
+      max_rank = len(self.terminal_nodes)
+      for rank_reduction in range(1,max_rank): #consider removing 1 through all but 1. This is the max number of iter. we may break sooner
+         #depending on the tree structure we could potentially remove multiple at a time, which makes this a bit messy
+         #consider making the parent of each terminal node of the current best a terminal node itself, removing its progeny as terminal nodes
+         if len(best_terminal_node_list) == 1:
+            break #there are no more nodes to remove
+         best_terminal_node_list_for_rank = []
+         best_prune_error_for_rank = 999.9
+         found_better_for_rank = False
+         n_nodes_to_consider = len(best_terminal_node_list)
+         for i in range(n_nodes_to_consider):
+            nodes_i = copy(best_terminal_node_list)
+            #remove this node
+            node_removed = nodes_i.pop(i)
+            if (node_removed.parent_node is None):
+               continue #we can't remove the base node. go to the next
+            #remove all other nodes related to the parent of this node
+            for j in nodes_i:
+               if not (node_removed.parent_node is None):
+                  if node_removed.parent_node.is_progeny(j):
+                     nodes_i.remove(j)
+            #add the parent of the pop'd node as a terminal node itslef
+            nodes_i.append(node_removed.parent_node)
+            #compute the error with the resulting list of terminal nodes
+            error_i = 0.0
+            for o in nodes_i:
+               error_i += (o.compute_error(o.Y_train,True) + alpha)
+            
+            #if we haven't get computed an error for this round of ranks
+            #then make this the best option for the rank
+            if not found_better_for_rank:
+               best_prune_error_for_rank = error_i
+               best_terminal_node_list_for_rank = copy(nodes_i)
+               #next time we will have to compare to this error
+               found_better_for_rank = True 
+            elif error_i < best_prune_error_for_rank:
+               #we found something better in this round of ranks
+               best_prune_error_for_rank = error_i
+               best_terminal_node_list_for_rank = copy(nodes_i)
+         #we have exhauseted the current possible 1-node replacements with parents
+         #see if this rank afforded a better error than the last
+         if found_better_for_rank:  #we have something valid to compare to the previous rank's result
+            if best_prune_error_for_rank < best_prune_error:
+               #we have a set of nodes that decreases the error
+               best_terminal_node_list = copy(best_terminal_node_list_for_rank)
+               best_prune_error = best_prune_error_for_rank
+               #we will continue to try smaller rank trees that a subsets of this one
+            else:
+               break #this rank offered no improvement in error. we know how to prune
+         else:
+            break #this rank offered no valid options probably because we were already at a single node last rank.
+      
+      #we have our winner or this next part does nothing
+      self.terminal_nodes = copy(best_terminal_node_list)
+      #make these nodes terminal, removing their branches if they have them
+      for node in self.terminal_nodes:
+         if not node.is_terminal:
+            node.is_terminal = True
+            node.cut_index = -1
+            node.cut_value = 0.0
+            node.branches = []
+            node.determined_opt_cut = False
+      #recompute the number of observations in each node
+      self.n_obs_term_node = []
+      for i in self.terminal_nodes:
+         self.n_obs_term_node.append(i.obs_for_node())
+   #}
 #}
 
 class tree_node:
@@ -142,6 +253,30 @@ class tree_node:
       self.Y_train = np.array(Y_train_) 
       self.is_classification = is_classification_
       self.determined_opt_cut = False
+   #}
+   
+   def return_deepcopy(self,the_parent):
+   #{
+      #this function is somewhat unfortunate because we cant use standard __deepcopy__()
+      #this is because __deepcopy__() doesn't allow us to pass the reference to the parent node
+      #(at least without screwing with memo, which I am hesitant to do)
+      #we make copies of X and Y in constructor so just pass references in below
+      the_copy = tree_node(copy.deepcopy(self.value),self.X_train,self.Y_train,copy.deepcopy(self.is_classification),the_parent) 
+      
+      #this is set in init but just to be explicit. we are not going to copy over other opt_cut members
+      #they can be recomputed if needed
+      the_copy.determined_opt_cut = False
+      
+      #if we are not a terminal node, we need to copy our actual cut information and copy the branches
+      if not self.is_terminal:
+         the_copy.is_terminal = False
+         the_copy.cut_index = self.cut_index
+         the_copy.cut_index = self.cut_index
+         the_copy.branches = []
+         the_copy.branches.append(self.branches[0].return_deepcopy(the_copy))
+         the_copy.branches.append(self.branches[1].return_deepcopy(the_copy))
+
+      return the_copy
    #}
 
    def make_branches(self,cut_index_,cut_value_):
@@ -266,5 +401,33 @@ class tree_node:
             return self.branches[1].predict(x)
    #}
    
+   def return_list_terminal_nodes(self):
+   #{
+      #return a list of all terminal nodes that are descendants of this node
+      if self.is_terminal:
+         return [self]
+      else:
+         return [self.branches[0].return_list_terminal_nodes()] + [self.branches[1].return_list_terminal_nodes()]
+   #}
+   
+   def is_progeny(self,other_node):
+   #{
+      #return True if other_node is 
+      #a branch of this node, or the branch of a 
+      #branch of this node etc.
+      
+      if self.is_terminal:
+         #we have no progeny to check against
+         return False
+      else:
+         #check our branches
+         if (self.branches[0] is other_node) or (self.branches[1] is other_node):
+            #it is one of our branches
+            return True
+         #check our branches branches
+         else:
+            return (self.branches[0].is_progeny(other_node) or self.branches[1].is_progeny(other_node))
+   #}
+
 #}
 

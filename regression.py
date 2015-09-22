@@ -7,10 +7,10 @@ from machine_learning import *
 from toy_data import *
 
 #generate data
-n=500
-p=5
+n=100
+p=3
 m=1
-max_order = 3
+max_order = 2
 orders = range(1,max_order+1)
 n_relevant_orders = np.ndarray(len(orders),dtype=np.int)
 n_relevant_orders.fill(p)
@@ -38,12 +38,20 @@ for l in lambdas:
 
 #Now lets try a regression tree
 print 'computing training error for Unpruned Decision Tree'
-train_udt = decision_tree_train_test(X_aug,Y,X_aug,Y,(False,10))
+train_udt = decision_tree_train_test(X,Y,X,Y,(False,10))
 print 'unpruned decision tree training mse is ',train_udt
 
 print 'performing cross validation CV('+str(cvn)+') for Unpruned Decision Tree'
-cvn_udt = n_cross_validation(X_aug,Y,decision_tree_train_test,(False,10),cvn)
+cvn_udt = n_cross_validation(X,Y,decision_tree_train_test,(False,10),cvn)
 print 'unpruned decision tree cvn mse is ',cvn_udt
+
+print 'performing cross validation CV('+str(cvn)+') for Pruned Decision Tree'
+alpha_values = np.linspace(1.0,20.0,num=lambdas.size,endpoint=True) #so that we can put it on the same plot easily
+errors_for_alpha = []
+for a in alpha_values:
+   cvn_pdt = n_cross_validation(X,Y,pruned_decision_tree_train_test,(False,10,a),cvn)
+   print 'pruned decision tree (alpha='+str(a)+') cvn mse is '+str(cvn_pdt[0])
+   errors_for_alpha.append(cvn_pdt[0])
 
 
 if (m==1):
@@ -52,13 +60,14 @@ if (m==1):
    lr_vs_lambda = np.zeros(lambdas.size)
    lr_vs_lambda.fill(cvn_lr[0])
    ax.scatter(lambdas,lr_vs_lambda,s=10,c='b',marker="s",label="LR CVn")
-   ax.scatter(lambdas,rr_vs_lambda,s=10,c='r',marker="s",label="RR CVn")
+   ax.scatter(lambdas,rr_vs_lambda,s=10,c='r',marker="s",label="RR CVn vs lambda")
    udt_train_vs_lambda = np.zeros(lambdas.size)
    udt_train_vs_lambda.fill(train_udt[0])
    ax.scatter(lambdas,udt_train_vs_lambda,s=10,c='g',marker="s",label="Decision Tree Train")
    udt_cvn_vs_lambda = np.zeros(lambdas.size)
    udt_cvn_vs_lambda.fill(cvn_udt[0])
    ax.scatter(lambdas,udt_cvn_vs_lambda,s=10,c='m',marker="s",label="Decision Tree CVn")
+   ax.scatter(lambdas,errors_for_alpha,s=10,c='y',marker="s",label="Pruned Decision Tree CVn vs alpha")
    plt.legend(loc='best');
    plt.show()
 
