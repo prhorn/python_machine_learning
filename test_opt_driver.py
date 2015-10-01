@@ -1,5 +1,7 @@
 #! /usr/bin/env python
-
+import sys
+import os
+sys.path.append(os.getcwd()+'/nonlinear_solvers/')
 from quadratic_test import quadratic_test
 from steepest_descent import steepest_descent
 from l_bfgs import l_bfgs
