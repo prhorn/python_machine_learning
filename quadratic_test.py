@@ -20,7 +20,7 @@ class quadratic_test:
          print 'size must be positive'
          sys.exit(1)
       
-      self.tolerance = 1.0E-8 
+      self.tolerance = 1.0E-6
       
       self.q = np.random.rand(size)
       self.x = np.zeros(size) 
@@ -32,6 +32,7 @@ class quadratic_test:
          for c in range(r+1,size):   
             L[r,c] = 0.0
       self.H = np.dot(L,np.transpose(L)) + np.ones(shape=(size,size),dtype=np.float)
+      self.H = 0.01*self.H
 
       #test H
       evals = np.linalg.eigvalsh(self.H)
@@ -62,7 +63,7 @@ class quadratic_test:
    
    def obtain_guess(self):
    #{
-      self.x = np.random.rand(self.q.size)
+      self.x = np.zeros(self.q.size)
       self.x_origin = self.x
    #}
 

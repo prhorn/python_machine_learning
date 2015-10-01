@@ -3,10 +3,10 @@
 from quadratic_test import quadratic_test
 from steepest_descent import steepest_descent
 
-max_iter = 1000
-problem_size = 50
+max_iter = 4000
+problem_size = 2
 
-problem = quadratic_test(50)
+problem = quadratic_test(problem_size)
 problem.obtain_guess()
 optimizer = steepest_descent(problem)
 
