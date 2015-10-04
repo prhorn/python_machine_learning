@@ -1,2 +1,6 @@
 *.pyc
 nonlinear_solvers/*.pyc
+time_series/*.pyc
+time_series/*.pdf
+time_series/*.log
+time_series/*.aux

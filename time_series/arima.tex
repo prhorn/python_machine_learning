@@ -1,0 +1,122 @@
+\documentclass[8pt]{article}
+\title{ARIMA} 
+\begin{document}
+\maketitle
+
+ARIMA(p,d,q) for time series z.
+\\*
+w is z differenced d times and adjusted to have mean 0.
+\\*
+Non-seasonal model with constant:
+\begin{equation}
+\phi(B)w_t = \theta(B)a_t + \theta_0
+\end{equation}
+
+\begin{equation}
+\phi(B) = 1 - \sum_{i=1}^p \phi_i B^i
+\end{equation}
+\begin{equation}
+\theta(B) = 1 - \sum_{i=1}^q \theta_i B^i
+\end{equation}
+
+\begin{equation}
+\sum_{j=1-p}^n (\delta_t^j - \sum_{i=1}^p \phi_i \delta_{t-i}^j)w_j = \sum_{j=1-q}^n (\delta_t^j - \sum_{i=1}^q \theta_i \delta_{t-i}^j)a_j + \theta_0 
+\end{equation}
+
+\begin{equation}
+\sum_{j=1}^n (\delta_t^j - \sum_{i=1}^p \phi_i \delta_{t-i}^j)w_j + \sum_{j=1-p}^0 (\delta_t^j - \sum_{i=1}^p \phi_i \delta_{t-i}^j)w_j= \sum_{j=1}^n (\delta_t^j - \sum_{i=1}^q \theta_i \delta_{t-i}^j)a_j + \sum_{j=1-q}^0 (\delta_t^j - \sum_{i=1}^q \theta_i \delta_{t-i}^j)a_j + \theta_0 
+\end{equation}
+
+t ranges from 1 to n in the current parameter training situation.
+The following matrices abreviate the above sum specification:
+
+\begin{equation}
+L_{\phi}w + \mathcal{L}_\phi \omega = L_{\theta}a + \mathcal{L}_{\theta}\alpha +  \theta_0
+\end{equation}
+
+Where the p-length $\omega$ contains the past values of w, and the q-length $\alpha$ contains the past values of a.
+$\theta_0$ in the above is an n-long vector of ones times a single constant, $1_n \theta_0$.
+
+From this we can write:
+\begin{equation}
+L_\theta^{-1} L_\theta = I_n
+\end{equation}
+
+\begin{equation}
+\label{a_eqn}
+a = L_{\theta}^{-1}(L_{\phi}w + \mathcal{L}_\phi \omega - \mathcal{L}_{\theta}\alpha - \theta_0)  
+\end{equation}
+
+
+The goal is to get an expression for the unconditional sum of squares parameter estimates.
+unconditional refers to the fact that we optimize $\omega$ and $\alpha$ instead of just setting them to zero or generating them by backwards iteractions. The sum of squares specification means that we will not extremize the full likelihood function but rather an approximation to it.
+We would ideally maximize $P(w|\phi,\theta,\theta_0,\sigma) = L(\phi,\theta,\theta_0,\sigma|w)$, the likelihood of observing our training data, w, as a function of our model parameters. The first objective is to construct the conditional distriubiton for w.
+
+Our shocks, the a and $\alpha$, are assumed in the model to  look like white noise (this expression was at least true in the MA case in which there are no $\omega$ to consider):
+\begin{equation} \label{aa}
+P(a,\alpha|\sigma) = (2\pi \sigma^2)^{-(n+q)/2} e^{-\frac{1}{2\sigma^2}(a^T a + \alpha^T \alpha)}
+\end{equation}
+
+We may be required to start with the following \ref{aaw} instead of \ref{aa}, thus considering the presence of the $\omega$ from the outset. 
+
+\begin{equation} \label{aaw}
+P(a,\alpha,\omega|\sigma) = (2\pi \sigma^2)^{-(n+q+p)/2}|\Omega|^{-1/2} e^{-\frac{1}{2\sigma^2}(a^T a +  (\omega^T,\alpha^T) \Omega^{-1} (\omega^T,\alpha^T)^T}
+\end{equation}
+
+Justification for the above:\\
+The a are uncorrelated from the past values, $(\omega^T,\alpha^T)$, but the $\alpha$ and $\omega$ are correlated because they correspond to overlapping times. 
+The a's are uncorrelated with a's of different times and the same is true among the $\alpha$'s.
+The observed (a) and past ($\alpha$) shocks are expected to have a normal distribution (white noise) in our model. Because the w and thus their past analog, the $\omega$, are linear combinations of the shocks, they are expected to be normally distriubted as well. 
+
+We now need to define the (scaled) (auto)covariance matrix for $\alpha$ and $\omega$:
+
+\begin{equation}
+\Omega \sigma^2 = E[(\omega^T,\alpha^T)^T (\omega^T,\alpha^T)] 
+\end{equation}
+
+$\Omega$ is p+q by p+q. Block by block we have:
+
+\begin{equation}
+\Omega_{pp} = E[\omega \omega^T] = \sigma^{-2} \Gamma
+\end{equation}
+
+\begin{equation}
+\Gamma_{ij} = \gamma_{i-j} = \gamma_{j-i}
+\end{equation}
+
+Aside:
+\begin{equation}
+w_t = \sum_{j=0}^{\infty} \psi_j a_{t-j}
+\end{equation}
+\begin{equation}
+\gamma_k = E[w_t w_{t+k}] = E[\sum_{j=0}^{\infty} \sum_{h=0}^{\infty} \psi_j \psi_{h} a_{t-j} a_{t+k-h}] = \sum_{j=0}^{\infty} \sum_{h=0}^{\infty} \psi_j \psi_{h} \delta^h_{j+k} \sigma^{2} = \sigma^2 \sum_{j=0}^{\infty} \psi_j \psi_{j+k}
+\end{equation}
+
+The autocovariances, $\gamma_k$, are defined by:
+
+
+
+
+\begin{equation}
+\Omega_{qp} = E[\alpha \omega^T] = C
+\end{equation}
+
+\begin{equation}
+\Omega_{qq} = I
+\end{equation}
+
+At least from \ref{aaw} if not from \ref{aa}, using \ref{a_eqn} we have:
+
+
+\begin{equation}
+P(W,\omega,\alpha|\phi,\theta,\theta_0,\sigma) = (2\pi \sigma^2)^{-(n+p+q)/2} |\Omega|^{-1/2} e^{-S(\phi,\theta,\theta_0,\alpha,\omega)/(2\sigma^2)}
+\end{equation}
+
+
+The function is dominated by S in the exponential with minimal contriubtion from the determinant except for small n. We will minimze S, yielding the unconditional sum of squares parameter estimates.
+
+We need to figure out the optimal e to eliminate $\alpha$ and $\omega$ from S.
+
+
+
+\end{document}
