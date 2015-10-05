@@ -152,3 +152,69 @@ def Holm_Sidak(list_of_data_series,list_of_comparison_pairs,alpha):
    return pass_fail,p_vals 
 #}
 
+def z_test(a,b,apply_yates=True):
+#{
+   #values in the two samples, a and b,
+   #are 0 or 1 corresponding to two states
+   #we test to see if there is a significance 
+   #difference in the probability of state 1
+   #(and thus of state 0)
+   #yates refers to the yates correction for continuity
+
+   n_a = len(a)
+   n_b = len(b)
+   #proportion of observations in state 1 for series a
+   p_a = float(sum(a))/float(n_a)
+   p_b = float(sum(b))/float(n_b)
+   #we use pooled information for variance = p_overall(1-p_overall)
+   p_overall = (p_a*float(n_a) + p_b*float(n_b))/float(n_a + n_b)
+   if apply_yates:
+      z = (abs(p_a - p_b) - 0.5*(1.0/float(n_a) + 1.0/float(n_b)))/math.sqrt(p_overall*(1.0-p_overall)*(1.0/float(n_a) + 1.0/float(n_b)))
+   else:
+      z = abs(p_a - p_b)/math.sqrt(p_overall*(1.0-p_overall)*(1.0/float(n_a) + 1.0/float(n_b)))
+
+   #z is normal
+   p_value = scipy.stats.norm.cdf(-1.0*z) + scipy.stats.norm.sf(z) # prob below -z plus prob above +z
+   
+   return z,p_value
+#}
+
+def chi_squared(list_of_data_series,n_categories):
+#{
+   #we assume that the series contain integers
+   #0, 1, 2,... n_categories-1
+   
+   n_series = len(list_of_data_series)
+   #rows are categories. cols are series
+   #entires are the number of observations
+   #of that category in that series
+   cat_ser = np.zeros(shape=(n_categories,n_series),dtype = np.int)
+   for c in range(n_series):
+      for i in list_of_data_series[c]:
+         cat_ser[i,c] = cat_ser[i,c] + 1
+   
+   #number of observations in each series
+   obs_series = []
+   for i in range(n_series):
+      obs_series.append(np.sum(cat_ser[:,i]))
+   total_obs = sum(obs_series)
+   
+   #the probability across all series of being in a given category
+   global_proportions = []
+   for i in range(n_categories):
+      global_proportions.append(float(np.sum(cat_ser[i,:]))/float(total_obs)) 
+
+   chi_sq = 0.0
+   for r in range(n_categories):
+      for c in range(n_series):
+         #(observed - expected)^2 / expected
+         expected = global_proportions[r]*obs_series[c]
+         chi_sq = chi_sq + ((cat_ser[r,c] - expected)**2)/expected
+
+   dof = (n_categories - 1)*(n_series - 1)
+   
+   p_value = scipy.stats.chi2.sf(chi_sq,dof)
+
+   return chi_sq,p_value
+#}
+
