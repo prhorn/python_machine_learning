@@ -170,7 +170,7 @@ def Holm_Sidak(list_of_data_series,list_of_comparison_pairs,alpha):
    return pass_fail,p_vals 
 #}
 
-def z_test(a,b,apply_yates=True):
+def z_test(a,b,apply_yates=True,compute_confidence_interval_diff_prop=False,confidence_level=95):
 #{
    #values in the two samples, a and b,
    #are 0 or 1 corresponding to two states
@@ -178,6 +178,10 @@ def z_test(a,b,apply_yates=True):
    #difference in the probability of state 1
    #(and thus of state 0)
    #yates refers to the yates correction for continuity
+   
+   #if compute_confidence_interval_diff_prop is true,
+   #we compute the confidence_level% interval for the
+   #difference between the two sample proportions
 
    n_a = len(a)
    n_b = len(b)
@@ -186,16 +190,29 @@ def z_test(a,b,apply_yates=True):
    p_b = float(sum(b))/float(n_b)
    #we use pooled information for variance = p_overall(1-p_overall)
    p_overall = (p_a*float(n_a) + p_b*float(n_b))/float(n_a + n_b)
+   std_err_diff_p = math.sqrt(p_overall*(1.0-p_overall)*(1.0/float(n_a) + 1.0/float(n_b)))
    if apply_yates:
-      z = (abs(p_a - p_b) - 0.5*(1.0/float(n_a) + 1.0/float(n_b)))/math.sqrt(p_overall*(1.0-p_overall)*(1.0/float(n_a) + 1.0/float(n_b)))
+      z = (abs(p_a - p_b) - 0.5*(1.0/float(n_a) + 1.0/float(n_b)))/std_err_diff_p
    else:
-      z = abs(p_a - p_b)/math.sqrt(p_overall*(1.0-p_overall)*(1.0/float(n_a) + 1.0/float(n_b)))
+      z = abs(p_a - p_b)/std_err_diff_p
 
    #z is normal
    #p_value = scipy.stats.norm.cdf(-1.0*z) + scipy.stats.norm.sf(z) # prob below -z plus prob above +z
    p_value = 2.0*scipy.stats.norm.sf(z) # symmetric
    
-   return z,p_value
+   if not compute_confidence_interval_diff_prop:
+      return z,p_value
+   else:
+      #-z_alpha < ((delta_sample_proportions) - (delta_true_proportions))/standard_error_of_difference_of_proportions < z_alpha
+      alpha = 1.0 - confidence_level/100.0
+      #compute the most extreme values of the standard normal we would accept
+      #to contain confidence_level% of the normal distribution,
+      #remembering that it is symmetric
+      z_alpha = scipy.stats.norm.isf(alpha/2.0) #inverse survival function
+      lower_bound = (p_a - p_b) - z_alpha*std_err_diff_p
+      upper_bound = (p_a - p_b) + z_alpha*std_err_diff_p
+      return z,p_value,(lower_bound,upper_bound)
+      
 #}
 
 def chi_squared(list_of_data_series,n_categories,print_table=False):
@@ -284,10 +301,31 @@ def confidence_interval_mean(data,confidence_level):
    return (lower_bound,upper_bound)
 #}
 
-#def confidence_level_proportion
+def confidence_interval_proportion(data,confidence_level):
 #{
+   #if confidence_level = 95
+   #then 95% of such confidence intervals produced from
+   #samples of the same population will contain the
+   #true population proportion of category 1
+   ###
+   #data is a vector of integers 0 or 1 
+   #p_1 + p_0 = 1
+   #we are computing confidence interval for p1
+   
+   alpha = 1.0 - confidence_level/100.0
+   #compute the most extreme values of the standard normal we would accept
+   #to contain confidence_level% of the normal distribution,
+   #remembering that it is symmetric
+   z_alpha = scipy.stats.norm.isf(alpha/2.0) #inverse survival function
+   
+   #-z_alpha < (observed_proportion_1 - true_proportion_1)/standard_error_of_proportion < z_alpha
+   p1 = sample_mean(data)
+   s_p1 = math.sqrt((p1*(1.0-p1))/float(len(data))) #sample stdev = sqrt(p(1-p)) #standard error of proportion divides by sqrt(n)
+   
+   lower_bound = p1 - z_alpha*s_p1
+   upper_bound = p1 + z_alpha*s_p1
 
-
+   return (lower_bound,upper_bound)
 #}
 
 

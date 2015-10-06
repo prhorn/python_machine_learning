@@ -14,17 +14,24 @@ print 'chi_sq',chi_sq
 print 'p-value',p_value
 
 
-placebo = np.concatenate((np.ones(18,dtype=np.int),np.zeros(7,dtype=np.int) ) )
-aspirin = np.concatenate((np.ones(6,dtype=np.int),np.zeros(13,dtype=np.int) ) )
-
 print 'asprin data'
+placebo = np.concatenate((np.ones(18,dtype=np.int),np.zeros(7,dtype=np.int) ) )
+placebo_i = confidence_interval_proportion(placebo,95)
+print 'placebo proportion with condition ',sample_mean(placebo)
+print 'placebo proportion 95% confidence interval = ('+str(placebo_i[0])+','+str(placebo_i[1])+')'
+aspirin = np.concatenate((np.ones(6,dtype=np.int),np.zeros(13,dtype=np.int) ) )
+aspirin_i = confidence_interval_proportion(aspirin,95)
+print 'aspirin proportion with condition ',sample_mean(aspirin)
+print 'aspirin proportion 95% confidence interval = ('+str(aspirin_i[0])+','+str(aspirin_i[1])+')'
+
 chi_sq,p_value = chi_squared([placebo,aspirin],2)
 print 'chi_sq ',chi_sq
 print 'p-value ',p_value
 
-z,p_value = z_test(placebo,aspirin,False)
+z,p_value,interval = z_test(placebo,aspirin,False,True,95)
 print 'z without yates ',z
 print 'p-value ',p_value
+print 'proportion difference (placebo - aspirin) 95% confidence interval = ('+str(interval[0])+','+str(interval[1])+')'
 
 z,p_value = z_test(placebo,aspirin,True)
 print 'z with yates ',z
