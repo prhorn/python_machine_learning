@@ -1,6 +1,10 @@
 import numpy as np
 import sys
 from decision_trees import decision_tree
+import os
+sys.path.append(os.getcwd()+'/stat_tests/')
+from simple_stats import *
+import scipy.stats
 
 def mean_squared_error(Y_predicted,Y_actual):
 #{
@@ -66,7 +70,7 @@ def linear_regression(X,Y,include_intercept):
    n_indep = s.size
    for i in s:
       if (i < tol):
-         n_indep -= 1
+         n_indep = n_indep - 1
 
    if n_indep > 0:
       metric_inv = np.dot(U[:,:n_indep],np.dot(np.diag(s[:n_indep]**-1),np.transpose(U[:,:n_indep])))
@@ -90,6 +94,77 @@ def linear_regression_train_test(X_train,Y_train,X_test,Y_test,param_tuple):
    mse = mean_squared_error(predicted_Y,Y_test) 
    return mse
 #} 
+
+def lin_reg_coefficient_of_determination(X,Y,B,column_index=0):
+#{
+   #it is assumed that the X,Y passed were those used to generate B
+   #column index specifies the column of Y for which we ant the coefficient computed
+   predicted_Y = np.dot(np.column_stack((X,np.ones(X.shape[0]))),B) #add ones col to X to get intercept contriubtion
+   if (len(Y.shape)==1):
+      SS_res = np.dot(Y-predicted_Y,Y-predicted_Y)
+      mu_y = sample_mean(Y)
+      SS_tot = np.dot(Y - mu_y,Y - mu_y)
+   else:
+      SS_res = np.dot(Y[:,column_index] - predicted_Y,Y[:,column_index]-predicted_Y)
+      mu_y = sample_mean(Y[:,column_index])
+      SS_tot = np.dot(Y[:,column_index] - mu_y, Y[:,column_index] - mu_y)
+   
+   return (1.0 - SS_res/SS_tot)
+#}
+
+def lin_reg_statistics(X,Y,B):
+#{
+   if not ((len(Y.shape)==1) and (len(B.shape)==1)):
+      print 'lin_reg_statistics designed for single columns of Y (and B) at a time'
+      sys.exit(1)
+   
+   aX = np.column_stack((X,np.ones(X.shape[0]))) #add ones col to X to get intercept contriubtion
+   predicted_Y = np.dot(aX,B) #add ones col to X to get intercept contriubtion
+   
+   RSS = np.dot(Y - predicted_Y,Y - predicted_Y)
+   var_y = (1.0/float(Y.shape[0] - B.shape[0])) * RSS 
+
+   metric = np.dot(aX.T,aX)
+   U,s,V = np.linalg.svd(metric) #NB svals are decreasing
+   tol = 1.0E-8
+   n_lin_dep = 0
+   for i in s:
+      if (i < tol):
+         n_lin_dep = n_lin_dep + 1
+
+   if n_lin_dep > 0:
+      print 'columns of X are linearly dependent. cannot compute statistics'
+      sys.exit(1)
+
+   cov_B = var_y*np.dot(U,np.dot(np.diag(s**-1),np.transpose(U)))
+   
+   #get data on mean model (just a constant) so we can test for significance of any slopes
+   B_mean_model = np.array([sample_mean(Y)]) #just a constant coefficient
+   Y_predict_mean = np.empty(Y.shape[0])
+   Y_predict_mean.fill(B_mean_model[0])
+   RSS_mean = np.dot(Y-Y_predict_mean,Y-Y_predict_mean) 
+   F_stat = (RSS_mean - RSS)/float(B.shape[0] - B_mean_model.shape[0])
+   F_stat = F_stat/(RSS/float(Y.shape[0]-B.shape[0]))
+   p_val_regression_null = scipy.stats.f.sf(F_stat,B.shape[0] - B_mean_model.shape[0],Y.shape[0]-B.shape[0])
+   
+   print 'p-value for statistical test against mean model ',p_val_regression_null
+
+   t_dof = Y.shape[0] - B.shape[0]
+   t_for_coef = []
+   p_for_coef = []
+   for i in range(B.shape[0]):
+      t_i = B[i]/math.sqrt(cov_B[i,i]) #standardize (mean 0 hypothesis)
+      p_i = 2.0*scipy.stats.t.sf(t_i,t_dof) # symmetric
+      t_for_coef.append(t_i)
+      p_for_coef.append(p_i)
+   
+   print 'printing fit coefficient statistics. p-values are unadjusted'
+   print 'coef+slope    t-value     p-value'
+   for i in range(B.shape[0]):
+      print str(B[i])+'  '+str(t_for_coef[i])+'   '+str(p_for_coef[i])
+   return     
+#}
+
 
 def ridge_regression(X,Y,lambda_rr):
 #{

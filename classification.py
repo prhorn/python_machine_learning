@@ -82,13 +82,13 @@ for a in alpha_values:
    print 'cross validation classification error rate for RDA alpha='+str(a)+' is  '+str(cva[0])
    errors_for_alpha.append(cva[0])
 
-print 'computing cross validation error for Pruned Decision Tree'
-alpha_values_tree = np.linspace(0.5,10.0,num=k_max,endpoint=True) #so that we can put it on the same plot easily
-errors_for_alpha_tree = []
-for a in alpha_values_tree:
-   cv_pdt = n_cross_validation(X,Y,pruned_decision_tree_train_test,(True,5,a),10)
-   print 'cross validation classification error rate for Pruned Decision Tree (alpha='+str(a)+') is  '+str(cv_pdt[0])
-   errors_for_alpha_tree.append(cv_pdt[0])
+#print 'computing cross validation error for Pruned Decision Tree'
+#alpha_values_tree = np.linspace(0.5,10.0,num=k_max,endpoint=True) #so that we can put it on the same plot easily
+#errors_for_alpha_tree = []
+#for a in alpha_values_tree:
+#   cv_pdt = n_cross_validation(X,Y,pruned_decision_tree_train_test,(True,5,a),10)
+#   print 'cross validation classification error rate for Pruned Decision Tree (alpha='+str(a)+') is  '+str(cv_pdt[0])
+#   errors_for_alpha_tree.append(cv_pdt[0])
 
 fig = plt.figure()
 ax = fig.add_subplot(111) #grab axis object
@@ -99,7 +99,7 @@ ax.scatter(k_values,LDA_const, s=10, c='b', marker="s", label='LDA Error Rate')
 QDA_const = np.zeros(len(k_values))
 QDA_const.fill(cv_QDA[0])
 ax.scatter(k_values,QDA_const, s=10, c='g', marker="s", label='QDA Error Rate')
-ax.scatter(k_values,errors_for_alpha, s=10, c='m', marker="s", label='RDA Classification Error Rate vs even alpha(0-1)')
+#ax.scatter(k_values,errors_for_alpha, s=10, c='m', marker="s", label='RDA Classification Error Rate vs even alpha(0-1)')
 gnb_const = np.zeros(len(k_values))
 gnb_const.fill(cv_gnb[0])
 ax.scatter(k_values,gnb_const, s=10, c='y', marker="s", label='Gaussian Naive Bayes Error Rate')
