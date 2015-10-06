@@ -9,7 +9,7 @@ joggers = np.concatenate((np.ones(9,dtype=np.int),np.zeros(14,dtype=np.int) ) )
 runners = np.concatenate((np.ones(46,dtype=np.int),np.zeros(42,dtype=np.int) ) )
 
 print 'runner data'
-chi_sq,p_value = chi_squared([controls,joggers,runners],2)
+chi_sq,p_value = chi_squared([controls,joggers,runners],2,True)
 print 'chi_sq',chi_sq
 print 'p-value',p_value
 

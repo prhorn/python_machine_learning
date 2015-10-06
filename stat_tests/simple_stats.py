@@ -23,7 +23,7 @@ def sample_stdev(x):
 
 def sample_standard_error_of_mean(x):
 #{
-   return sample_stdev(x)/mat.sqrt(float(len(x)))
+   return sample_stdev(x)/math.sqrt(float(len(x)))
 #}
 
 def compute_percentiles(x,percentile_list):
@@ -92,8 +92,12 @@ def F_test(list_of_data_series):
    return F,p_value
 #}
 
-def t_test(a,b):
+def t_test(a,b,compute_confidence_interval_diff_mean=False,confidence_level=95):
 #{
+   #if compute_confidence_interval_diff_mean is true,
+   #we compute the confidence_level% interval for the
+   #difference between the two sample means
+
    n_a = len(a)
    n_b = len(b)
    mu_a = sample_mean(a)
@@ -106,8 +110,21 @@ def t_test(a,b):
    t = abs(t)
    t_dof = n_a + n_b - 2
 
-   p_value = scipy.stats.t.cdf(-1.0*t,t_dof) + scipy.stats.t.sf(t,t_dof) # prob below -t plus prob above +t
-   return t,p_value
+   #p_value = scipy.stats.t.cdf(-1.0*t,t_dof) + scipy.stats.t.sf(t,t_dof) # prob below -t plus prob above +t
+   p_value = 2.0*scipy.stats.t.sf(t,t_dof) # symmetric 
+   
+   if not compute_confidence_interval_diff_mean:
+      return t,p_value
+   else:
+      #-t_alpha < ((delta_sample_means) - (delta_true_means))/standard_error_of_difference_of_means < t_alpha
+      alpha = 1.0 - confidence_level/100.0
+      #compute the most extreme t-value we would accept
+      #to contain confidence_level% of the t distribution,
+      #remembering that it is symmetric
+      t_alpha = scipy.stats.t.isf(alpha/2.0,t_dof) #inverse survival function
+      lower_bound = (mu_a - mu_b) - t_alpha*math.sqrt(pooled_variance/float(n_a) + pooled_variance/float(n_b))
+      upper_bound = (mu_a - mu_b) + t_alpha*math.sqrt(pooled_variance/float(n_a) + pooled_variance/float(n_b))
+      return t,p_value,(lower_bound,upper_bound)
 #}
 
 def Holm_Sidak(list_of_data_series,list_of_comparison_pairs,alpha):
@@ -132,7 +149,8 @@ def Holm_Sidak(list_of_data_series,list_of_comparison_pairs,alpha):
    #for each comparison, compute an unadjusted p-value
    for c in list_of_comparison_pairs:
       t_i = abs( mu_i[c[0]] - mu_i[c[1]])/math.sqrt(var_within*(1.0/float(n_i[c[0]]) + 1.0/float(n_i[c[1]])))
-      p_i = scipy.stats.t.cdf(-1.0*t_i,dof) + scipy.stats.t.sf(t_i,dof) # prob below -t plus prob above +t
+      #p_i = scipy.stats.t.cdf(-1.0*t_i,dof) + scipy.stats.t.sf(t_i,dof) # prob below -t plus prob above +t
+      p_i = 2.0*scipy.stats.t.sf(t_i,dof) # symmetric
       p_vals.append(p_i)
    #sort the unadjusted p-values
    sorted_comparison_indices = np.argsort(p_vals)
@@ -143,7 +161,7 @@ def Holm_Sidak(list_of_data_series,list_of_comparison_pairs,alpha):
    #0 fail 1 pass with position corresponding to the position of the comparison in list_of_comparison_pairs
    pass_fail = np.zeros(k,dtype=np.int) #initialize to failure so that we can just break below
    for i in range(k):
-      cur_alpha = 1.0 - math.pow(1.0 - alpha,1.0/float(k-i))
+      cur_alpha = Sidak_adjusted_trial_alpha(alpha,k-i)
       if (p_vals[sorted_comparison_indices[i]] < cur_alpha):
          pass_fail[sorted_comparison_indices[i]] = 1
       else:
@@ -174,12 +192,13 @@ def z_test(a,b,apply_yates=True):
       z = abs(p_a - p_b)/math.sqrt(p_overall*(1.0-p_overall)*(1.0/float(n_a) + 1.0/float(n_b)))
 
    #z is normal
-   p_value = scipy.stats.norm.cdf(-1.0*z) + scipy.stats.norm.sf(z) # prob below -z plus prob above +z
+   #p_value = scipy.stats.norm.cdf(-1.0*z) + scipy.stats.norm.sf(z) # prob below -z plus prob above +z
+   p_value = 2.0*scipy.stats.norm.sf(z) # symmetric
    
    return z,p_value
 #}
 
-def chi_squared(list_of_data_series,n_categories):
+def chi_squared(list_of_data_series,n_categories,print_table=False):
 #{
    #we assume that the series contain integers
    #0, 1, 2,... n_categories-1
@@ -192,7 +211,12 @@ def chi_squared(list_of_data_series,n_categories):
    for c in range(n_series):
       for i in list_of_data_series[c]:
          cat_ser[i,c] = cat_ser[i,c] + 1
-   
+
+   if print_table:
+      print 'rows correspond to categories: 0,1,2,..n_categories-1'
+      print 'columns correspond to the series passed'
+      print cat_ser
+
    #number of observations in each series
    obs_series = []
    for i in range(n_series):
@@ -217,4 +241,53 @@ def chi_squared(list_of_data_series,n_categories):
 
    return chi_sq,p_value
 #}
+
+def Sidak_adjusted_trial_alpha(overall_target_alpha,n_comparisons):
+#{
+   #return the alpha that we should compare an unadjusted p-value
+   #of a single comparison to in order to keep the error rate for 
+   #the collection of comparisons below overall_target_alpha
+   return (1.0 - math.pow(1.0 - overall_target_alpha,1.0/float(n_comparisons)))
+#}
+
+def Sidak_adjust_p_value(unadjusted_p_value,n_comparisons):
+#{
+   #return the p_value that we should compare to the overall
+   #target alpha for the set of comparisons given the unadjusted
+   #p_value of a single comparison
+
+   return (1.0 - ((1.0 - unadjusted_p_value)**n_comparisons))
+#}
+
+def confidence_interval_mean(data,confidence_level):
+#{
+   #if confidence_level = 95
+   #then 95% of such confidence intervals produced from
+   #samples of the same population will contain the
+   #true population mean
+   ###
+   #data is a vector of observations from a single sample
+   
+   dof = len(data)-1
+   alpha = 1.0 - confidence_level/100.0
+   #compute the most extreme t-value we would accept
+   #to contain confidence_level% of the t distribution,
+   #remembering that it is symmetric
+   t_alpha = scipy.stats.t.isf(alpha/2.0,dof) #inverse survival function
+   
+   # -t_alpha <= (sample_mean - true_mean)/sample_standard_error_of_mean  < t_alpha
+   s = sample_standard_error_of_mean(data)
+   mu = sample_mean(data)
+
+   lower_bound = mu - t_alpha*s
+   upper_bound = mu + t_alpha*s
+   return (lower_bound,upper_bound)
+#}
+
+#def confidence_level_proportion
+#{
+
+
+#}
+
 
