@@ -172,6 +172,30 @@ def lin_reg_statistics(X,Y,B,confidence_level=95):
    print 'coef+slope    t-value     p-value     '+str(confidence_level)+'%lower    '+str(confidence_level)+'%upper'
    for i in range(B.shape[0]):
       print str(B[i])+'  '+str(t_for_coef[i])+'   '+str(p_for_coef[i])+'    '+str(l_for_coef[i])+'    '+str(u_for_coef[i])
+
+   print 'computing confidence and prediciton intervals at the same points in X'
+   #our t_thresh_for_alpha above is the same one we need here
+   #actual #predicted   #lower_pred #upper_pred #lower_conf #upper_conf
+   #Y      #predicted_Y
+   l_pred = []
+   u_pred = []
+   l_conf = []
+   u_conf = []
+   #prediction are Y_i bounds
+   #confidence are E[\hat{Y_i}] bounds
+   for i in range(Y.shape[0]):
+      #the variance is Xi dependent
+      var_temp_i = np.dot(np.dot(aX[i,:],cov_B),aX[i,:])
+      sd_pred = math.sqrt(var_temp_i + var_y)
+      l_pred.append(predicted_Y[i] - sd_pred*t_thresh_for_alpha)
+      u_pred.append(predicted_Y[i] + sd_pred*t_thresh_for_alpha)
+      sd_conf = math.sqrt(var_temp_i)
+      l_conf.append(predicted_Y[i] - sd_conf*t_thresh_for_alpha)
+      u_conf.append(predicted_Y[i] + sd_conf*t_thresh_for_alpha)
+   print 'actual_Y      predicted_Y    '+str(confidence_level)+'%lower_pred      '+str(confidence_level)+'%upper_pred      '+str(confidence_level)+'%lower_conf      '+str(confidence_level)+'%upper_conf'      
+   for i in range(Y.shape[0]):
+      print str(Y[i])+'   '+str(predicted_Y[i])+'   '+str(l_pred[i])+'   '+str(u_pred[i])+'   '+str(l_conf[i])+'   '+str(u_conf[i])
+   
    return     
 #}
 
