@@ -112,7 +112,7 @@ def lin_reg_coefficient_of_determination(X,Y,B,column_index=0):
    return (1.0 - SS_res/SS_tot)
 #}
 
-def lin_reg_statistics(X,Y,B):
+def lin_reg_statistics(X,Y,B,confidence_level=95):
 #{
    if not ((len(Y.shape)==1) and (len(B.shape)==1)):
       print 'lin_reg_statistics designed for single columns of Y (and B) at a time'
@@ -122,7 +122,7 @@ def lin_reg_statistics(X,Y,B):
    predicted_Y = np.dot(aX,B) #add ones col to X to get intercept contriubtion
    
    RSS = np.dot(Y - predicted_Y,Y - predicted_Y)
-   var_y = (1.0/float(Y.shape[0] - B.shape[0])) * RSS 
+   var_y = (1.0/float(Y.shape[0] - B.shape[0])) * RSS  #equiv MSE = \hat{\sigma}^{2}
 
    metric = np.dot(aX.T,aX)
    U,s,V = np.linalg.svd(metric) #NB svals are decreasing
@@ -148,20 +148,30 @@ def lin_reg_statistics(X,Y,B):
    p_val_regression_null = scipy.stats.f.sf(F_stat,B.shape[0] - B_mean_model.shape[0],Y.shape[0]-B.shape[0])
    
    print 'p-value for statistical test against mean model ',p_val_regression_null
-
+   
+   #null hypothesis tests for coefs
    t_dof = Y.shape[0] - B.shape[0]
    t_for_coef = []
    p_for_coef = []
+   #confidence intervals for coefs
+   l_for_coef = []
+   u_for_coef = []
+   alpha = 1.0 - confidence_level/100.0
+   t_thresh_for_alpha = scipy.stats.t.isf(alpha/2.0,t_dof) #inverse survival function
    for i in range(B.shape[0]):
       t_i = B[i]/math.sqrt(cov_B[i,i]) #standardize (mean 0 hypothesis)
       p_i = 2.0*scipy.stats.t.sf(t_i,t_dof) # symmetric
       t_for_coef.append(t_i)
       p_for_coef.append(p_i)
+      l_i = B[i] - t_thresh_for_alpha*math.sqrt(cov_B[i,i])
+      u_i = B[i] + t_thresh_for_alpha*math.sqrt(cov_B[i,i])
+      l_for_coef.append(l_i)
+      u_for_coef.append(u_i)
    
    print 'printing fit coefficient statistics. p-values are unadjusted'
-   print 'coef+slope    t-value     p-value'
+   print 'coef+slope    t-value     p-value     '+str(confidence_level)+'%lower    '+str(confidence_level)+'%upper'
    for i in range(B.shape[0]):
-      print str(B[i])+'  '+str(t_for_coef[i])+'   '+str(p_for_coef[i])
+      print str(B[i])+'  '+str(t_for_coef[i])+'   '+str(p_for_coef[i])+'    '+str(l_for_coef[i])+'    '+str(u_for_coef[i])
    return     
 #}
 
