@@ -6,4 +6,5 @@ from arima_utility import *
 
 time_steps = 2000
 
-plot_example_arima(0,1,1,time_steps)
+print 'randome walk: ARIMA(0,1,0)'
+plot_example_arima(0,1,0,time_steps)

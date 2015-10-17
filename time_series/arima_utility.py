@@ -118,11 +118,19 @@ def gen_arima_data(phi,theta,sigma_sq_a,steps):
    return np.array(w[-steps:])
 #}
 
-def plot_example_arima(p,d,q,steps=2000):
+def plot_example_arima(p,d,q,verbose=False,steps=2000):
 #{
    print 'generating ARIMA('+str(p)+','+str(d)+','+str(q)+') time series'
    z,phi,theta,sigma_sq_a = gen_arima_model(p,d,q,steps)
    times = range(steps)
+   
+   if verbose:
+      if (p>0):
+         print 'this is phi'
+         print phi
+      if (q>0):
+         print 'this is theta'
+         print theta
 
    fig = plt.figure()
    ax = fig.add_subplot(111)
