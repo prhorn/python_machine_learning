@@ -5,6 +5,7 @@ import math
 import os
 sys.path.append(os.getcwd()+'/../nonlinear_solvers/')
 from l_bfgs import l_bfgs
+import matplotlib.pyplot as plt
 
 class ARIMA:
 #{
@@ -53,7 +54,7 @@ class ARIMA:
          sys.exit(1)
       
       self.n_param   = 1 + self.p + self.q
-      self.tolerance = 1.0E-7
+      self.tolerance = 1.0E-6
 
       #optimized parameters
       self.sigma_a_sq= 1.0
@@ -305,9 +306,22 @@ class ARIMA:
             if ( (j+i+1) < len(self.w) ):
                u[j] = u[j] + self.theta[i] * u[j+i+1]
       
+      
       #get e_star_hat
       b = np.dot(np.transpose(self.F),u)
       self.e_star_hat = np.linalg.solve(self.D,b)
+      
+      #DEBUG
+      #if (self.q == 0):
+      #   X = self.F
+      #else:
+      #   X = scipy.linalg.solve_triangular(self.L_theta,self.F,lower=True,unit_diagonal=True)
+      #
+      #b = np.dot(np.transpose(X),a_zero)
+      #test_e = np.linalg.solve(self.D,b)
+      #diff = self.e_star_hat - test_e
+      #print 'min, max of e_star_hat difference '+str(np.amin(diff))+', '+str(np.amax(diff))
+      
       return
    #}
    
@@ -331,37 +345,69 @@ class ARIMA:
       else:
          self.a_hat = np.array(b)
       
+      #DEBUG
+      ##                w_{1-p},...,w_{0},a_{1-q},...,a_{0}
+      #temp_a_hat = np.zeros(len(self.w))
+      #for t in range(len(self.w)):
+      #   temp_a_hat[t] = self.w[t]
+      #   for i in range(self.p):
+      #      if ((t-i-1)<0): 
+      #         temp_a_hat[t] = temp_a_hat[t] - self.phi[i]*self.e_star_hat[self.p+(t-i-1)]
+      #      else:
+      #         temp_a_hat[t] = temp_a_hat[t] - self.phi[i]*self.w[t-i-1]
+      #   for i in range(self.q):
+      #      if ((t-i-1)<0): 
+      #         temp_a_hat[t] = temp_a_hat[t] + self.theta[i]*self.e_star_hat[self.p+self.q+(t-i-1)]
+      #      else:
+      #         temp_a_hat[t] = temp_a_hat[t] + self.theta[i]*temp_a_hat[t-i-1]
+      #
+      #diff = self.a_hat - temp_a_hat
+      #print 'min, max of a_hat difference '+str(np.amin(diff))+', '+str(np.amax(diff))
+
       return
    #}
    
-   def value(self):
+   def compute_S(self):
    #{
-      #value of the likelihood function
       S = np.dot(self.a_hat,self.a_hat) 
       if ((self.p + self.q)>0):
-         S = S + np.dot(self.e_star_hat,np.dot(np.linalg.inv(self.Omega),self.e_star_hat))
+         Omega_inv = np.linalg.inv(self.Omega)
+         temp = np.dot(self.e_star_hat,np.dot(Omega_inv,self.e_star_hat))
+         #print 'Omega'
+         #print self.Omega
+         #print 'Omega_inv'
+         #print Omega_inv
+         #print 'e_star_hat'
+         #print self.e_star_hat
+         #print 'term = ',temp
+         S = S + temp
+         #print 'current S ',S 
+
+      return S
+   #}
+
+   def value(self):
+   #{
+      #value of the log-likelihood function
+      S =self.compute_S() 
+      omega_det = 1.0
+      d_det = 1.0
+      if ((self.p + self.q)>0):
+         omega_det = np.linalg.det(self.Omega)
+         d_det = np.linalg.det(self.D)
       
-      #omega_det = 1.0
-      #d_det = 1.0
-      #if ((self.p + self.q)>0):
-      #   omega_det = np.linalg.det(self.Omega)
-      #   #print 'this is Omega'
-      #   #print self.Omega
-      #   #print 'this is the determinant of Omega ',omega_det
-      #   omega_det = 1.0/math.sqrt(omega_det)
-      #   d_det = np.linalg.det(self.D)
-      #   d_det = 1.0/math.sqrt(d_det)
-      #
-      #f_n = float(len(self.w)) 
-      #
-      #temp_norm = math.pow(2.0*math.pi*self.sigma_a_sq,-1.0*f_n/2.0)
-      #temp_exp  = math.exp(-0.5*S/self.sigma_a_sq)
+      f_n = float(len(self.w)) 
+      
+      temp_norm = -1.0*(f_n/2.0)*math.log(2.0*math.pi*self.sigma_a_sq)
+      temp_omega = -0.5*math.log(omega_det)
+      temp_d = -0.5*math.log(d_det)
+      temp_exp  = -0.5*S/self.sigma_a_sq
       #print 'S ',S
       #print 'temp_norm ',temp_norm
       #print 'temp_exp ',temp_exp
       #print 'omega_det ',omega_det
       #print 'd_det ',d_det
-      #obj =  temp_norm*omega_det*d_det*temp_exp
+      obj =  temp_norm + temp_omega + temp_d + temp_exp 
       
       #print 'Omega '
       #print self.Omega
@@ -378,8 +424,8 @@ class ARIMA:
       #print 'a_hat'
       #print self.a_hat
 
-      obj = S
-      #obj = obj * -1.0 #algo set up for minimization
+      #print 'log-likelihood ',obj
+      obj = obj * -1.0 #algo set up for minimization
       return obj
    #}
    
@@ -393,9 +439,9 @@ class ARIMA:
       phi_fd_store  =  np.array(self.phi)
       theta_fd_store = np.array(self.theta)
       
-      grad = np.zeros(self.n_param) 
-      for i in range(self.n_param):
-         disp = np.zeros(self.n_param)
+      grad = np.zeros(self.n_param-1) #not including sigma_a_sq 
+      for i in range(len(grad)):
+         disp = np.zeros(len(grad))
          #forward step
          disp[i] = step_size
          self.update(disp)
@@ -420,8 +466,8 @@ class ARIMA:
       #return our intermediates to the fd origin
       self.update_intermediates()
       
-      print 'gradient'
-      print grad
+      #print 'gradient'
+      #print grad
 
       return grad
    #}
@@ -429,17 +475,31 @@ class ARIMA:
    def update(self,disp):
    #{
       #ORDER:
-      #  sigma_a_sq  -  variance of a, shocks
+      ###NOT CURRENTLY  sigma_a_sq  -  variance of a, shocks
       #  phi         -  AR parameters
       #  theta       -  MA parameters
-      
-      print 'this is our displacement'
-      print disp
-      self.sigma_a_sq = self.sigma_a_sq + disp[0]
+       
+      #print 'this is our displacement'
+      #print disp
+      #print 'parameters before displacement'
+      #print '  sigma_a_sq ',self.sigma_a_sq
+      #print '  phi'
+      #print self.phi
+      #print '  theta'
+      #print self.theta
+      #self.sigma_a_sq = self.sigma_a_sq + disp[0]
       for i in range(self.p):
-         self.phi[i] = self.phi[i] + disp[i+1] 
+         #self.phi[i] = self.phi[i] + disp[i+1] 
+         self.phi[i] = self.phi[i] + disp[i] 
       for i in range(self.q):
-         self.theta[i] = self.theta[i] + disp[i+1+self.p] 
+         #self.theta[i] = self.theta[i] + disp[i+1+self.p] 
+         self.theta[i] = self.theta[i] + disp[i+self.p] 
+      #print 'parameters after displacement'
+      #print '  sigma_a_sq ',self.sigma_a_sq
+      #print '  phi'
+      #print self.phi
+      #print '  theta'
+      #print self.theta
       self.update_intermediates()
       return 
    #}
@@ -478,27 +538,66 @@ class ARIMA:
       self.w = self.w - self.mu
       
       self.obtain_guess(guess_phi,guess_theta,guess_sigma_a_sq)
-      optimizer = l_bfgs(self)
+      
+      #self.coord_scan(1,np.arange(0.1,0.4,0.005))
+      
+      optimizer = l_bfgs(self,20,0,0.05,0)
       
       self.value()
-      max_iter = 100
+      max_iter = 50
       converged = False
       cur_iter = 0
-      print 'beginning minimization of negative of likelihood function'
+      print 'beginning minimization of negative of log-likelihood function'
       for i in range(max_iter):
          cur_iter = cur_iter + 1
          converged = optimizer.next_step() 
          if (converged):
             break
-         print "  "+str(cur_iter)+"  "+str(optimizer.value)+"  "+str(optimizer.error)+"  "+optimizer.comment
+         print "  "+str(cur_iter)+"  "+"{:.12f}".format(optimizer.value)+"  "+str(optimizer.error)+"  "+optimizer.comment
 
       if (converged):
-         print "  "+str(cur_iter)+"  "+str(optimizer.value)+"  "+str(optimizer.error)+"  Optimization Converged"
+         print "  "+str(cur_iter)+"  "+"{:.12f}".format(optimizer.value)+"  "+str(optimizer.error)+"  Optimization Converged"
       else:
          print 'optimization failed to converge'
-
+      
+      S = self.compute_S()
+      print 'this is the final S ',S
+      print 'this is the optimal sigma_a_sq ',S/float(len(self.w))
       return converged
    #}
    
+   def coord_scan(self,param_index,coord):
+   #{
+       
+      #store our current position
+      sigma_a_sq_scan_store = self.sigma_a_sq
+      phi_scan_store  =  np.array(self.phi)
+      theta_scan_store = np.array(self.theta)
+      
+      values = np.zeros(len(coord)) 
+      for c in range(len(coord)):
+         if (param_index == 0):
+            self.sigma_a_sq = coord[c]
+         elif (param_index<(self.p+1)):
+            self.phi[param_index-1] = coord[c]
+         else:
+            self.theta[param_index-1-self.p] = coord[c]
+         self.update_intermediates()
+         values[c] = self.value()
+      
+      #return parameters to their previous states
+      self.sigma_a_sq = sigma_a_sq_scan_store
+      self.phi  =  np.array(phi_scan_store)
+      self.theta = np.array(theta_scan_store)
+      #return our intermediates to the origin
+      self.update_intermediates()
+      
+      fig = plt.figure()
+      ax = fig.add_subplot(111)
+      ax.scatter(coord,values,s=10,c='b',marker="s",label='value vs parameter '+str(param_index))
+      plt.legend(loc='best');
+      plt.show()
+
+   #}
    
 #}

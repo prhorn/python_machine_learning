@@ -28,14 +28,18 @@ class l_bfgs:
    
    #  direction         /**<The current direction that we are searching along*/
    #  prev_grad         /**<The gradient at the origin of the current line search*/
+   
+   #  sd_length         /**<Scale back steepest descent directions if more than this length.
+   #                        Allow us to deal with poor guesses.*/
 
-   def __init__(self,the_problem_,max_vecs_=20,ls_param_pref_ = 0, iprint_=0):
+   def __init__(self,the_problem_,max_vecs_=20,ls_param_pref_ = 0,sd_length_ = 1.0, iprint_=0):
    #{
       self.the_problem = the_problem_
       self.max_vecs = max_vecs_
       self.iprint = iprint_
       self.ls_param_pref = ls_param_pref_
       self.ls = line_search(self.ls_param_pref,self.iprint)
+      self.sd_length = sd_length_
 
       self.reset()
    #}
@@ -64,6 +68,7 @@ class l_bfgs:
 
       #empty gradient should trigger instant convergence
       if (grad.size == 0):
+         print 'gradient was of length zero. nothing to optimize'
          self.error = 0.0;
          self.the_problem.ls_origin_to_current_pos(); #to old orbs
          return True
@@ -79,7 +84,12 @@ class l_bfgs:
       
       if (self.iteration==0):
          #decide the first search direction (sd)
-         self.direction = -1.0*grad
+         #make it tame
+         norm = math.sqrt(np.dot(grad,grad))
+         if (norm>self.sd_length):
+            self.direction = (-1.0*self.sd_length/norm)*grad
+         else:
+            self.direction = (-1.0)*grad
          #we are at the line search origin
          self.prev_grad = grad
          self.the_problem.ls_origin_to_current_pos()
@@ -165,8 +175,15 @@ class l_bfgs:
             #we have our descent direction
          else:
             #we are stuck doing steepest descent 
-            self.direction = -1.0*grad
+            norm = math.sqrt(np.dot(grad,grad))
+            if (norm>self.sd_length):
+               self.direction = (-1.0*self.sd_length/norm)*grad
+            else:
+               self.direction = (-1.0)*grad
             self.comment = "New Steepest Descent Direction"
+         #we are at the line search origin
+         self.prev_grad = grad
+         self.the_problem.ls_origin_to_current_pos()
          
          #we have our new search direction 
          #reset the line search

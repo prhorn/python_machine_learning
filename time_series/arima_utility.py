@@ -59,7 +59,7 @@ def gen_arima_model(p,d,q,steps,add_mean=False):
    
    #generated the differenced time series based on model params
    w = gen_arima_data(phi,theta,sigma_sq_a,steps-d)
-   
+   #print 'mean of generated w ',np.sum(w)/float(len(w))   
    #add a mean
    if (add_mean == 'if_d_zero'):
       if (d == 0):
