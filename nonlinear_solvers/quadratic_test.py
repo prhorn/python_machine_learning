@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+from l_bfgs import l_bfgs
 
 class quadratic_test:
 #{
@@ -76,5 +77,24 @@ class quadratic_test:
    #{
       self.x = self.x_origin 
    #}
+   
+   def solve(self,max_iter):
+   #{
+      self.obtain_guess() 
+      optimizer = l_bfgs(self)
 
+      converged = False
+      cur_iter = 0
+      for i in range(max_iter):
+         cur_iter = cur_iter + 1
+         converged = optimizer.next_step() 
+         if (converged):
+            break
+         print "  "+str(cur_iter)+"  "+str(optimizer.value)+"  "+str(optimizer.error)+"  "+optimizer.comment
+
+      if (converged):
+         print "  "+str(cur_iter)+"  "+str(optimizer.value)+"  "+str(optimizer.error)+"  Optimization Converged"
+      else:
+         print 'optimization failed to converge'
+   #}
 #}

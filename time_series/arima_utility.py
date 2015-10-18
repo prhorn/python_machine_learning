@@ -54,7 +54,8 @@ def gen_arima_model(p,d,q,steps,add_mean=False):
    
    #determine the variance for shocks (sigma_sq_a)
    #uniform 1,2
-   sigma_sq_a = np.random.random_sample() + 1.0
+   #sigma_sq_a = np.random.random_sample() + 1.0
+   sigma_sq_a = 1.0 
    
    #generated the differenced time series based on model params
    w = gen_arima_data(phi,theta,sigma_sq_a,steps-d)

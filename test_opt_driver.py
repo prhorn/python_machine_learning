@@ -27,3 +27,7 @@ if (converged):
    print "  "+str(cur_iter)+"  "+str(optimizer.value)+"  "+str(optimizer.error)+"  Optimization Converged"
 else:
    print 'optimization failed to converge'
+
+print 'doing the same with quadratic_test internal solve function'
+problem.solve(max_iter)
+print 'done test of solve'
