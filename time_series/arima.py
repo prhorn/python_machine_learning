@@ -439,7 +439,8 @@ class ARIMA:
       phi_fd_store  =  np.array(self.phi)
       theta_fd_store = np.array(self.theta)
       
-      grad = np.zeros(self.n_param-1) #not including sigma_a_sq 
+      #grad = np.zeros(self.n_param-1) #not including sigma_a_sq 
+      grad = np.zeros(self.n_param) 
       for i in range(len(grad)):
          disp = np.zeros(len(grad))
          #forward step
@@ -487,13 +488,13 @@ class ARIMA:
       #print self.phi
       #print '  theta'
       #print self.theta
-      #self.sigma_a_sq = self.sigma_a_sq + disp[0]
+      self.sigma_a_sq = self.sigma_a_sq + disp[0] #opt sigma
       for i in range(self.p):
-         #self.phi[i] = self.phi[i] + disp[i+1] 
-         self.phi[i] = self.phi[i] + disp[i] 
+         self.phi[i] = self.phi[i] + disp[i+1] #opt sigma
+         #self.phi[i] = self.phi[i] + disp[i] #not opt sigma
       for i in range(self.q):
-         #self.theta[i] = self.theta[i] + disp[i+1+self.p] 
-         self.theta[i] = self.theta[i] + disp[i+self.p] 
+         self.theta[i] = self.theta[i] + disp[i+1+self.p] #opt sigma
+         #self.theta[i] = self.theta[i] + disp[i+self.p] #not opt sigma
       #print 'parameters after displacement'
       #print '  sigma_a_sq ',self.sigma_a_sq
       #print '  phi'
@@ -560,9 +561,9 @@ class ARIMA:
       else:
          print 'optimization failed to converge'
       
-      S = self.compute_S()
-      print 'this is the final S ',S
-      print 'this is the optimal sigma_a_sq ',S/float(len(self.w))
+      #S = self.compute_S()
+      #print 'this is the final S ',S
+      #print 'this is the optimal sigma_a_sq ',S/float(len(self.w))
       return converged
    #}
    

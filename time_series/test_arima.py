@@ -8,7 +8,7 @@ from  statsmodels.tsa import arima_model as am
 
 time_steps = 2000
 
-p = 0
+p = 1
 d = 1
 q = 2
 
@@ -37,9 +37,16 @@ plt.show()
 if (d==0):
    #test with statsmodels
    model = am.ARMA(z,(p,q))
-   result = model.fit(trend='c',method='mle')
-   print 'parameters from statsmodels fitting'
+   result = model.fit(trend='c',method='mle',disp=-1)
+   print 'parameters from statsmodels fitting for comparison'
    print result.params
+else:
+   #test with statsmodels
+   model = am.ARIMA(z,(p,d,q))
+   result = model.fit(trend='c',method='mle',disp=-1)
+   print 'parameters from statsmodels fitting for comparison'
+   print result.params
+   
 
 #mix up the guess
 #trying -S minimization because numerics seem better
