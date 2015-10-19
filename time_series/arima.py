@@ -373,22 +373,14 @@ class ARIMA:
       if ((self.p + self.q)>0):
          Omega_inv = np.linalg.inv(self.Omega)
          temp = np.dot(self.e_star_hat,np.dot(Omega_inv,self.e_star_hat))
-         #print 'Omega'
-         #print self.Omega
-         #print 'Omega_inv'
-         #print Omega_inv
-         #print 'e_star_hat'
-         #print self.e_star_hat
-         #print 'term = ',temp
          S = S + temp
-         #print 'current S ',S 
 
       return S
    #}
 
    def value(self):
    #{
-      #value of the log-likelihood function
+      #value of the (negative) log-likelihood function
       S =self.compute_S() 
       omega_det = 1.0
       d_det = 1.0
@@ -402,29 +394,8 @@ class ARIMA:
       temp_omega = -0.5*math.log(omega_det)
       temp_d = -0.5*math.log(d_det)
       temp_exp  = -0.5*S/self.sigma_a_sq
-      #print 'S ',S
-      #print 'temp_norm ',temp_norm
-      #print 'temp_exp ',temp_exp
-      #print 'omega_det ',omega_det
-      #print 'd_det ',d_det
       obj =  temp_norm + temp_omega + temp_d + temp_exp 
-      
-      #print 'Omega '
-      #print self.Omega
-      #print 'F '
-      #print self.F
-      #print 'L_theta '
-      #print self.L_theta
-      #print 'L_phi '
-      #print self.L_phi
-      #print 'D '
-      #print self.D
-      #print 'e_star_hat '
-      #print self.e_star_hat
-      #print 'a_hat'
-      #print self.a_hat
 
-      #print 'log-likelihood ',obj
       obj = obj * -1.0 #algo set up for minimization
       return obj
    #}
@@ -460,15 +431,10 @@ class ARIMA:
          self.phi  =  np.array(phi_fd_store)
          self.theta = np.array(theta_fd_store)
          #compute gradient for this parameter 
-         #print 'v_forward ',v_forward
-         #print 'v_back ',v_back
          grad[i] = (v_forward - v_back)/(2.0*step_size)
       #phi,theta,sigma are at the fd origin
       #return our intermediates to the fd origin
       self.update_intermediates()
-      
-      #print 'gradient'
-      #print grad
 
       return grad
    #}
@@ -476,18 +442,10 @@ class ARIMA:
    def update(self,disp):
    #{
       #ORDER:
-      ###NOT CURRENTLY  sigma_a_sq  -  variance of a, shocks
+      #  sigma_a_sq  -  variance of a, shocks
       #  phi         -  AR parameters
       #  theta       -  MA parameters
        
-      #print 'this is our displacement'
-      #print disp
-      #print 'parameters before displacement'
-      #print '  sigma_a_sq ',self.sigma_a_sq
-      #print '  phi'
-      #print self.phi
-      #print '  theta'
-      #print self.theta
       self.sigma_a_sq = self.sigma_a_sq + disp[0] #opt sigma
       for i in range(self.p):
          self.phi[i] = self.phi[i] + disp[i+1] #opt sigma
@@ -495,12 +453,6 @@ class ARIMA:
       for i in range(self.q):
          self.theta[i] = self.theta[i] + disp[i+1+self.p] #opt sigma
          #self.theta[i] = self.theta[i] + disp[i+self.p] #not opt sigma
-      #print 'parameters after displacement'
-      #print '  sigma_a_sq ',self.sigma_a_sq
-      #print '  phi'
-      #print self.phi
-      #print '  theta'
-      #print self.theta
       self.update_intermediates()
       return 
    #}
