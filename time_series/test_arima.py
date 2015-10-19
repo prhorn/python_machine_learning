@@ -47,9 +47,6 @@ else:
    print 'parameters from statsmodels fitting for comparison'
    print result.params
    
-
-#mix up the guess
-#trying -S minimization because numerics seem better
 guess_sigma_a_sq = sigma_a_sq
 if (p>0):
    guess_phi = phi #+ 0.01*np.random.random_sample(p)
