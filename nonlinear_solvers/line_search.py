@@ -549,10 +549,14 @@ class line_search:
       #DEBUG - remove eventually
       if ( (next_alpha < (self.alpha_min-1.0E-8)) or (next_alpha > (self.alpha_max+1.0E-8)) ):
          print "ERROR: alpha_min = "+str(self.alpha_min)+"  alpha_max = "+str(self.alpha_max)+"  next_alpha = "+str(next_alpha)+"  WTF!"
+         print "something exploded. split the difference between lower and upper"
+         next_alpha = min(self.alpha_t[next_alpha_u],self.alpha_t[next_alpha_l]) + 0.5*(max(self.alpha_t[next_alpha_u],self.alpha_t[next_alpha_l]) - min(self.alpha_t[next_alpha_u],self.alpha_t[next_alpha_l]))
       if not (self.alpha_u[self.iteration]==-1):
          #check that we obey interval bounds
          if ((next_alpha < (min(self.alpha_t[next_alpha_u],self.alpha_t[next_alpha_l])-1.0E-8)) or (next_alpha > (max(self.alpha_t[next_alpha_u],self.alpha_t[next_alpha_l])+1.0E-8))):
             print "ERROR: next_alpha_l = "+str(self.alpha_t[next_alpha_l])+" next_alpha = "+str(next_alpha)+" next_alpha_u = "+str(self.alpha_t[next_alpha_u])+"   WTF!"
+            print "Split the difference between lower and upper"
+            next_alpha = min(self.alpha_t[next_alpha_u],self.alpha_t[next_alpha_l]) + 0.5*(max(self.alpha_t[next_alpha_u],self.alpha_t[next_alpha_l]) - min(self.alpha_t[next_alpha_u],self.alpha_t[next_alpha_l]))
 
       self.alpha_t = np.append(self.alpha_t,next_alpha) 
       self.alpha_u = np.append(self.alpha_u,next_alpha_u) 
