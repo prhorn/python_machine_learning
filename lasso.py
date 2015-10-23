@@ -291,8 +291,8 @@ class lasso:
       if reguess:
          self.obtain_guess()
 
-      optimizer = l_bfgs(self,20,0,0.05,0)
-      max_iter = 1000
+      optimizer = l_bfgs(self,40,0,0.05,0)
+      max_iter = 5000
       converged = False
       cur_iter = 0
       print_iter = True

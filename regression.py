@@ -27,10 +27,13 @@ X_aug = poly_order_of_cols(X,orders,include_cross_terms)
 print 'cols of X_aug ',X_aug.shape[1]
 
 ##stats
-#B = linear_regression(X_aug,Y[:,0],True)
-#r_sq = lin_reg_coefficient_of_determination(X_aug,Y[:,0],B)
-#print 'r_squared for brute force fit ',r_sq
-#lin_reg_statistics(X_aug,Y[:,0],B)
+Y_fix = Y - np.sum(Y)/float(Y.size)
+B = linear_regression(X_aug,Y_fix[:,0],True)
+r_sq = lin_reg_coefficient_of_determination(X_aug,Y_fix[:,0],B)
+print 'r_squared for brute force fit ',r_sq
+lin_reg_statistics(X_aug,Y_fix[:,0],B)
+print 'full linreg coefs'
+print B
 
 #Cross Validation
 #cvn = 10
@@ -42,7 +45,7 @@ print 'cols of X_aug ',X_aug.shape[1]
 if m==1:
    lasso_train_vs_lambda = []
    lasso_test_vs_lambda = []
-   lambdas = np.linspace(0.0001,100.0,20,endpoint=False)
+   lambdas = np.linspace(0.0000,1000.0,11,endpoint=True)
    n_test = int(X_aug.shape[0]/5)
    Y_shift = Y - np.sum(Y)/float(Y.size)
    X_aug_test = X_aug[:n_test,:]
@@ -61,6 +64,8 @@ if m==1:
          print 'lambda = '+str(l)+' train mse = '+str(mse_train)+' test mse = '+str(mse_test)
          lasso_train_vs_lambda.append(mse_train)
          lasso_test_vs_lambda.append(mse_test)
+         print 'converged coefs '
+         print lasso_obj.beta
       else:
          print 'failed to converge for lambda ='+str(l)
          lasso_train_vs_lambda.append(-1.0)
