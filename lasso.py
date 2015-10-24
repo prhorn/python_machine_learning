@@ -5,7 +5,6 @@ import math
 import os
 sys.path.append(os.getcwd()+'/nonlinear_solvers/')
 from l_bfgs import l_bfgs
-from machine_learning import *
 
 class lasso:
 #{
@@ -67,7 +66,7 @@ class lasso:
       #print 'shape of beta ',self.beta.shape
       e = self.y - np.dot(self.X,self.beta)
       if self.add_constant:
-         e = e - beta_0
+         e = e - self.beta_0
       #print 'shape of e ',e.shape 
       #take care of weight cases
       if self.is_weighted:
@@ -107,7 +106,7 @@ class lasso:
       
       if self.add_constant:
          aug_X = np.column_stack((self.X,np.ones(self.X.shape[0])))
-         lsq = np.dot(aug_X,np.concatenate(self.beta,np.array([self.beta_0]))) - self.y
+         lsq = np.dot(aug_X,np.concatenate((self.beta,np.array([self.beta_0])))) - self.y
          if self.is_weighted:
             if self.weights_diag:
                lsq = np.dot(np.transpose(aug_X),np.dot(np.diag(self.W),lsq))
@@ -256,8 +255,8 @@ class lasso:
       #print 'shape of disp ',disp.shape
       #print 'shape of beta before update ',self.beta.shape
       if self.add_constant:
-         self.beta = self.beta + disp[:-1,0]
-         self.beta_0 = self.beta_0 + disp[-1,0]
+         self.beta = self.beta + disp[:-1]
+         self.beta_0 = self.beta_0 + disp[-1]
       else:
          self.beta = self.beta + disp
       #print 'shape of beta after update ',self.beta.shape

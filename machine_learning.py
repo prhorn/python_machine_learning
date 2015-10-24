@@ -66,7 +66,7 @@ def linear_regression(X,Y,include_intercept):
    #compute and invert the metric
    metric = np.dot(aX.T,aX)
    U,s,V = np.linalg.svd(metric) #NB svals are decreasing
-   tol = 1.0E-8
+   tol = 1.0E-10
    n_indep = s.size
    for i in s:
       if (i < tol):
@@ -112,7 +112,7 @@ def lin_reg_coefficient_of_determination(X,Y,B,column_index=0):
    return (1.0 - SS_res/SS_tot)
 #}
 
-def lin_reg_statistics(X,Y,B,confidence_level=95):
+def lin_reg_statistics(X,Y,B,do_pred_interval=True,confidence_level=95):
 #{
    if not ((len(Y.shape)==1) and (len(B.shape)==1)):
       print 'lin_reg_statistics designed for single columns of Y (and B) at a time'
@@ -171,31 +171,32 @@ def lin_reg_statistics(X,Y,B,confidence_level=95):
    print 'printing fit coefficient statistics. p-values are unadjusted'
    print 'coef+slope    t-value     p-value     '+str(confidence_level)+'%lower    '+str(confidence_level)+'%upper'
    for i in range(B.shape[0]):
-      print str(B[i])+'  '+str(t_for_coef[i])+'   '+str(p_for_coef[i])+'    '+str(l_for_coef[i])+'    '+str(u_for_coef[i])
-
-   print 'computing confidence and prediciton intervals at the same points in X'
-   #our t_thresh_for_alpha above is the same one we need here
-   #actual #predicted   #lower_pred #upper_pred #lower_conf #upper_conf
-   #Y      #predicted_Y
-   l_pred = []
-   u_pred = []
-   l_conf = []
-   u_conf = []
-   #prediction are Y_i bounds
-   #confidence are E[\hat{Y_i}] bounds
-   for i in range(Y.shape[0]):
-      #the variance is Xi dependent
-      var_temp_i = np.dot(np.dot(aX[i,:],cov_B),aX[i,:])
-      sd_pred = math.sqrt(var_temp_i + var_y)
-      l_pred.append(predicted_Y[i] - sd_pred*t_thresh_for_alpha)
-      u_pred.append(predicted_Y[i] + sd_pred*t_thresh_for_alpha)
-      sd_conf = math.sqrt(var_temp_i)
-      l_conf.append(predicted_Y[i] - sd_conf*t_thresh_for_alpha)
-      u_conf.append(predicted_Y[i] + sd_conf*t_thresh_for_alpha)
-   print 'actual_Y      predicted_Y    '+str(confidence_level)+'%lower_pred      '+str(confidence_level)+'%upper_pred      '+str(confidence_level)+'%lower_conf      '+str(confidence_level)+'%upper_conf'      
-   for i in range(Y.shape[0]):
-      print str(Y[i])+'   '+str(predicted_Y[i])+'   '+str(l_pred[i])+'   '+str(u_pred[i])+'   '+str(l_conf[i])+'   '+str(u_conf[i])
+      print '{:.8f}'.format(B[i])+'  '+'{:.8f}'.format(t_for_coef[i])+'   '+'{:.8f}'.format(p_for_coef[i])+'    '+'{:.8f}'.format(l_for_coef[i])+'    '+'{:.8f}'.format(u_for_coef[i])
    
+   if do_pred_interval:
+      print 'computing confidence and prediciton intervals at the same points in X'
+      #our t_thresh_for_alpha above is the same one we need here
+      #actual #predicted   #lower_pred #upper_pred #lower_conf #upper_conf
+      #Y      #predicted_Y
+      l_pred = []
+      u_pred = []
+      l_conf = []
+      u_conf = []
+      #prediction are Y_i bounds
+      #confidence are E[\hat{Y_i}] bounds
+      for i in range(Y.shape[0]):
+         #the variance is Xi dependent
+         var_temp_i = np.dot(np.dot(aX[i,:],cov_B),aX[i,:])
+         sd_pred = math.sqrt(var_temp_i + var_y)
+         l_pred.append(predicted_Y[i] - sd_pred*t_thresh_for_alpha)
+         u_pred.append(predicted_Y[i] + sd_pred*t_thresh_for_alpha)
+         sd_conf = math.sqrt(var_temp_i)
+         l_conf.append(predicted_Y[i] - sd_conf*t_thresh_for_alpha)
+         u_conf.append(predicted_Y[i] + sd_conf*t_thresh_for_alpha)
+      print 'actual_Y      predicted_Y    '+str(confidence_level)+'%lower_pred      '+str(confidence_level)+'%upper_pred      '+str(confidence_level)+'%lower_conf      '+str(confidence_level)+'%upper_conf'      
+      for i in range(Y.shape[0]):
+         print '{:.8f}'.format(Y[i])+'   '+'{:.8f}'.format(predicted_Y[i])+'   '+'{:.8f}'.format(l_pred[i])+'   '+'{:.8f}'.format(u_pred[i])+'   '+'{:.8f}'.format(l_conf[i])+'   '+'{:.8f}'.format(u_conf[i])
+      
    return     
 #}
 

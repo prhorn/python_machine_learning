@@ -53,7 +53,7 @@ def quadratic_cross_n_Xp_Ym(n,p,m):
    return X,Y,B
 #}
 
-def polynomial_n_Xp_Ym(n,p,m,orders,n_relevant_orders,include_cross):
+def polynomial_n_Xp_Ym(n,p,m,orders,n_relevant_orders,include_cross,print_ans = False):
 #{
    #orders orders can be any (can skip linear if you want)
    #an intercept is always added
@@ -79,6 +79,9 @@ def polynomial_n_Xp_Ym(n,p,m,orders,n_relevant_orders,include_cross):
          X_relevant[:,relevant_pos:relevant_pos+n_relevant_orders[o]] = X_o[:,columns_chosen]
          relevant_pos += n_relevant_orders[o]
    B = (10.0*np.random.rand(X_relevant.shape[1]+1,m)) + 1.5 
+   if print_ans:
+      print 'coefficients used to generate random polynomial (intercept last)'
+      print B
    Y = np.dot(np.column_stack((X_relevant,np.ones(X_relevant.shape[0]))),B) #add a ones column for the intercept
    #add random error epsilon
    Y += np.random.normal(0.0,1.0,(n,m)) # mean 0 var 1 normal draw for epsilon
