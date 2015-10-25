@@ -2,6 +2,7 @@ import numpy as np
 import math
 import sys
 import matplotlib.pyplot as plt
+from copy import *
 
 #Least Angle Regression
 #
@@ -139,7 +140,10 @@ class LARS:
       if not updated_gamma:
          if not (len(self.active_indices)==self.m):
             print 'we seem to be unable to progress though we have not included all parameters'
-         gamma = C/A_active
+            gamma = 0.0 #gamma is not meaningful and we shouldn't try to finish
+         else:
+            #we're done. go to the least squares answer
+            gamma = C/A_active
       
       if debug:
          print 'this is our projected next max correlation ',(C-gamma*A_active)
@@ -175,7 +179,8 @@ class LARS:
          return True,C    
       elif (twiddle_index >= 0): #Lasso modification came into play 
          temp = self.active_indices.pop(twiddle_index)
-         print 'removing active index ',temp 
+         if debug:
+            print 'removing active index ',temp 
          return True,C    
       
       if debug:
@@ -193,16 +198,20 @@ class LARS:
       
       C_list = []
       beta_list = []
+      active_list = [] 
 
       while keep_going:
          beta_list.append(np.array(self.beta))
+         active_list.append(copy(self.active_indices))
          keep_going,C = self.next_step()
          C_list.append(C)  
       #get last C to confirm zero
-      beta_list.append(np.array(self.beta))
-      keep_going,C = self.next_step()
-      C_list.append(C)
+      #beta_list.append(np.array(self.beta))
+      #active_list.append(copy(self.active_indices))
+      #keep_going,C = self.next_step()
+      #C_list.append(C)
       
+
       #make them members to make analysis easier for now
       self.max_corr_vs_iter = C_list
       self.coefs_vs_iter = [[] for i in range(self.m)]
@@ -210,10 +219,11 @@ class LARS:
          for i in range(self.m):
             self.coefs_vs_iter[i].append(b_i[i])
       
-      self.make_plots()
+      print 'printing indices used throughout iterations'
+      print active_list
    #}
    
-   def make_plots(self):
+   def make_plots(self,option=0):
    #{
       fig = plt.figure()
       ax = fig.add_subplot(111)
@@ -221,13 +231,14 @@ class LARS:
       ax.scatter(iterations,self.max_corr_vs_iter,s=10,c='b',marker="s",label="Max Absolute Correlation")
       plt.legend(loc='best');
       plt.show()
-   
-      fig = plt.figure()
-      ax = fig.add_subplot(111)
-      for i in range(self.m):
-         ax.plot(iterations,self.coefs_vs_iter[i],'xb-',label="Coefficient "+str(i))
-      plt.legend(loc='upper left');
-      plt.show()
+      
+      if (option>0):
+         fig = plt.figure()
+         ax = fig.add_subplot(111)
+         for i in range(self.m):
+            ax.plot(iterations,self.coefs_vs_iter[i],'xb-',label="Coefficient "+str(i))
+         plt.legend(loc='upper left');
+         plt.show()
    
    #}
 #}
