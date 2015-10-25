@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from machine_learning import *
 from toy_data import *
 from lasso import lasso
+from lars import LARS
 
 #generate data
 n=1000
@@ -33,6 +34,14 @@ lin_reg_statistics(X_aug,Y[:,0],B,False)
 print 'full linreg coefs'
 print B
 
+print 'beginning LARS test'
+lars_obj = LARS(X_aug,Y[:,0],0)
+lars_obj.train()
+
+print 'beginning LASSO test'
+lars_obj = LARS(X_aug,Y[:,0],1)
+lars_obj.train()
+
 #Cross Validation
 #cvn = 10
 #print 'performing cross validation CV('+str(cvn)+') for linear regression'
@@ -40,7 +49,8 @@ print B
 #print 'linear regression cvn mse is ',cvn_lr
 
 #Now we will compute cvn for LASSO  with a number of lambdas
-if m==1:
+#if m==1:
+if False:
    lasso_train_vs_lambda = []
    lasso_test_vs_lambda = []
    lambdas = np.linspace(0.0000,100.0,11,endpoint=True)

@@ -6,8 +6,9 @@ import os
 sys.path.append(os.getcwd()+'/nonlinear_solvers/')
 from l_bfgs import l_bfgs
 
-class lasso:
+class lasso: #NUMERICS ARE HORRIBLE. use LARS instead
 #{
+   #
    #  Fit linear (y = X\beta + \epsilon) 
    #  model with L1 regularization (LASSO)
    #

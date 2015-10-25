@@ -65,18 +65,22 @@ def linear_regression(X,Y,include_intercept):
 
    #compute and invert the metric
    metric = np.dot(aX.T,aX)
-   U,s,V = np.linalg.svd(metric) #NB svals are decreasing
-   tol = 1.0E-10
-   n_indep = s.size
-   for i in s:
-      if (i < tol):
-         n_indep = n_indep - 1
+   #U,s,V = np.linalg.svd(metric) #NB svals are decreasing
+   #tol = 1.0E-10
+   #n_indep = s.size
+   #for i in s:
+   #   if (i < tol):
+   #      n_indep = n_indep - 1
 
-   if n_indep > 0:
-      metric_inv = np.dot(U[:,:n_indep],np.dot(np.diag(s[:n_indep]**-1),np.transpose(U[:,:n_indep])))
-   else:
-      print 'poorly posed problem in linear_regression'
-      sys.exit(1)
+   #if n_indep > 0:
+   #   metric_inv = np.dot(U[:,:n_indep],np.dot(np.diag(s[:n_indep]**-1),np.transpose(U[:,:n_indep])))
+   #else:
+   #   print 'poorly posed problem in linear_regression'
+   #   sys.exit(1)
+   metric_inv = np.linalg.pinv(metric) 
+#DEBUG
+   if not (np.allclose(np.identity(metric.shape[0]), np.dot(metric,metric_inv))):
+      print 'pseudoinverse of metric in linear_regression was poor'
    
    B = np.dot(metric_inv,np.dot(aX.T,Y))
 
