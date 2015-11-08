@@ -3,7 +3,6 @@
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import stats
 from machine_learning import *
 from toy_data import *
 
@@ -37,13 +36,6 @@ print cvn_result
 
 #plot if easy to visualize
 if (p == 1) and (m==1):
-   #compute also with scipy for comparison
-   slope, intercept, r_value, p_value, std_err = stats.linregress(X[:,0],Y[:,0])
-   print 'scipy slope: ',slope
-   print 'scipy intercept: ',intercept
-   print 'scipy r_value: ',r_value
-   print 'scipy p_value: ',p_value
-   print 'scipy std_err: ',std_err
 
    fig = plt.figure()
    ax = fig.add_subplot(111) #grab axis object
