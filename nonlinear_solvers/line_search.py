@@ -230,7 +230,7 @@ class line_search:
          self.delta_I =  0.66
       elif (param_pref==2): #steepest descent
          #these should probably be tweaked, but who runs SD for anything but testing code?
-         self.alpha_init = 1.0
+         self.alpha_init = 0.003
          self.alpha_min = 1.0E-6
          self.alpha_max = 40.0
          self.mu = 1.0E-4

@@ -7,9 +7,14 @@ import numpy as np
 
 sys.path.append(os.getcwd()+'/nonlinear_solvers/')
 from l_bfgs import l_bfgs
+from steepest_descent import steepest_descent
 
 def sigmoid(t):
-    return (1.0/(1.0 + math.exp(-1.0*float(t))))
+    if (t < -700.0):
+        result = 0.0
+    else:
+        result = (1.0/(1.0 + math.exp(-1.0*float(t))))
+    return result
 
 def sigmoid_deriv(t):
     s = sigmoid(t)
@@ -137,7 +142,7 @@ class NeuralNetwork:
             for r in range(self.layer_features[self.n_hidden_layers+1].shape[0]):
                 row = elementwise_function_on_vector(self.layer_features[self.n_hidden_layers+1][r,:],math.exp)
                 exp_T[r,:] = row
-                exp_T_row_sum[i] = np.sum(row)
+                exp_T_row_sum[r] = np.sum(row)
             term1 = -2.0 * R * exp_T
             for r in range(term1.shape[0]):
                 term1[r,:] = (1.0/exp_T_row_sum[r]) * term1[r,:]
@@ -275,15 +280,23 @@ class NeuralNetwork:
         for i in range(len(self.layer_coefficients_fd)):
             self.layer_coefficents.append(np.array(self.layer_coefficients_fd[i]))
    
-    def train(self, X_train, Y_train, tol=1.0E-7, print_iter=False):
+    def train(self, X_train, Y_train, tol=1.0E-7, algo=1, print_iter=False):
         # TODO reexpression of class labels as vectors
         self.X_train = X_train
         if self.is_classification:
             # we assume we have been passed a vector of integer labels
+            self.Y_train = np.zeros((Y_train.shape[0], np.amax(Y_train)+1), dtype=np.int)
+            for i in range(Y_train.shape[0]):
+                self.Y_train[i,Y_train[i,0]] = 1
         else:
             self.Y_train = Y_train
         self.tolerance = tol
-        optimizer = l_bfgs(self,40,0,0.05,0)
+        if algo == 0:
+            optimizer = steepest_descent(self)
+        elif algo == 1:
+            optimizer = l_bfgs(self,20,0,0.5,0)
+        else:
+            print 'optimizer not recognized'
         max_iter = 5000
         converged = False
         cur_iter = 0

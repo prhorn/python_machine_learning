@@ -77,7 +77,8 @@ class steepest_descent:
 
       phi_prime = np.dot(self.direction,grad)
       done_this_dir, next_alpha = self.ls.next_step(self.value,phi_prime)
-      if (done_this_dir):
+      #if (done_this_dir):
+      if (True):
          #we have either satisfied the wolfe conditions
          #at the current position or have deemed the
          #search to be fruitless
