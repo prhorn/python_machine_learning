@@ -86,6 +86,7 @@ class kmeans:
       self.update_mean_vectors()
 
       err = np.linalg.norm(self.mu_k - mu_last,ord='fro')
+      print err
       if err < self.tolerance:
          return True
       
@@ -99,6 +100,7 @@ class kmeans:
       converged = False
       for i in range(max_iter):
          cur_iter = cur_iter + 1
+         print 'kmeans iteration ',cur_iter
          converged = self.next_step()
          if converged:
             break
