@@ -150,8 +150,8 @@ class LinearRegression:
         self.f_stat_mean = []
         self.p_value_mean = []
         self.parameter_stats = []
-        for i in range(p):
-            residual = Y[:,i] - Y_hat[:,i]
+        for i in range(self.p):
+            residual = self.Y[:,i] - Y_hat[:,i]
             ss_residual = np.dot(residual,residual)
             mean = np.sum(self.Y[:,i])/float(self.N)
             centered = self.Y[:,i] - mean
@@ -194,9 +194,16 @@ class LinearRegression:
         if not hasattr(self, 'B'): 
             raise RuntimeError("Model must be trained before predicting")
         
-        # if X_predict is a vector, we will assume that it is an observation (row)
+        # if X_predict is a vector, we will check the dimensions of B
+        # to determine whether it is a row (observation) or a column
+        # (multiple observations one feature). If it is 1x1, it doesn't matter
         if len(X_predict.shape) == 1:
-            X_pred = np.array(X_predict.reshape(1,X_predict.size)) 
+            if self.B.shape[0] == 1:
+                # multiple observations
+                X_pred = np.array(X_predict.reshape(X_predict.size,1)) 
+            else: 
+                # a single observation
+                X_pred = np.array(X_predict.reshape(1,X_predict.size)) 
         else:
             X_pred = np.array(X_predict)
         
@@ -231,11 +238,12 @@ class LinearRegression:
             #print 'normal residual DOF ',res_dof
             
             # weights that are zero within thresh should not be classified to N
-            w_diag = np.diag(self.W)
-            weight_thresh = 1.0E-6
-            for w in w_diag:
-                if w < weight_thresh:
-                    res_dof = res_dof - 1
+            if self.is_weighted:
+                w_diag = np.diag(self.W)
+                weight_thresh = 1.0E-6
+                for w in w_diag:
+                    if w < weight_thresh:
+                        res_dof = res_dof - 1
             
             #print 'threshed residual DOF ',res_dof
 
